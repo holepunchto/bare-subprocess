@@ -249,6 +249,7 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
 
   free(args);
   free(pairs);
+  free(stdio);
 
   if (err < 0) {
     js_throw_error(env, uv_err_name(err), uv_strerror(err));
