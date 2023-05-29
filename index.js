@@ -1,5 +1,6 @@
 const EventEmitter = require('events')
 const Pipe = require('bare-pipe')
+const Signal = require('bare-signals')
 const binding = require('./binding')
 
 const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
@@ -8,10 +9,14 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
 
     this._handle = binding.init(this, this._onexit)
 
+    this.pid = null
     this.stdio = []
+    this.exitCode = null
+    this.killed = false
   }
 
   _onexit (code, signal) {
+    this.exitCode = code
     this.emit('exit', code, signal)
   }
 
@@ -25,6 +30,16 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
 
   get stderr () {
     return this.stdio[2]
+  }
+
+  kill (signum = signals.SIGTERM) {
+    if (typeof signum === 'string' && signum in signals) {
+      signum = signals[signum]
+    }
+
+    binding.kill(this._handle, signum)
+
+    this.killed = true
   }
 }
 
@@ -79,7 +94,7 @@ exports.spawn = function spawn (command, args, opts) {
     }
   }
 
-  binding.spawn(subprocess._handle,
+  subprocess.pid = binding.spawn(subprocess._handle,
     command,
     args,
     cwd,
@@ -92,3 +107,5 @@ exports.spawn = function spawn (command, args, opts) {
 
   return subprocess
 }
+
+const signals = exports.constants = Signal.constants

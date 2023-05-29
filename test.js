@@ -1,11 +1,27 @@
+const test = require('brittle')
 const { spawn } = require('.')
 
-const subprocess = spawn('echo', ['hello', 'world'], {
-  stdio: 'pipe'
+test('basic', (t) => {
+  t.plan(2)
+
+  const subprocess = spawn('bare', ['test/fixtures/hello.js'])
+
+  subprocess
+    .on('exit', () => t.pass('exited'))
+
+  subprocess.stdout
+    .on('data', (data) => t.alike(data, Buffer.from('hello\n')))
+
+  subprocess.stderr
+    .on('data', (err) => t.fail(err.toString()))
 })
 
-subprocess
-  .on('exit', (code, signal) => console.log('exit', code, signal))
+test('kill', (t) => {
+  t.plan(1)
 
-subprocess.stdout
-  .on('data', (data) => console.log(data.toString().trim()))
+  const subprocess = spawn('bare', ['test/fixtures/spin.js'])
+
+  subprocess
+    .on('exit', () => t.pass('exited'))
+    .kill()
+})

@@ -251,9 +251,42 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
   free(pairs);
   free(stdio);
 
+  js_value_t *pid = NULL;
+
   if (err < 0) {
     js_throw_error(env, uv_err_name(err), uv_strerror(err));
-    return NULL;
+  } else {
+    err = js_create_uint32(env, handle->process.pid, &pid);
+    assert(err == 0);
+  }
+
+  return pid;
+}
+
+static js_value_t *
+bare_subprocess_kill (js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 2;
+  js_value_t *argv[2];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 2);
+
+  bare_subprocess_t *handle;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &handle, NULL);
+  assert(err == 0);
+
+  uint32_t signum;
+  err = js_get_value_uint32(env, argv[1], &signum);
+  assert(err == 0);
+
+  err = uv_kill(handle->process.pid, signum);
+
+  if (err < 0) {
+    js_throw_error(env, uv_err_name(err), uv_strerror(err));
   }
 
   return NULL;
@@ -269,6 +302,7 @@ init (js_env_t *env, js_value_t *exports) {
   }
   V("init", bare_subprocess_init)
   V("spawn", bare_subprocess_spawn)
+  V("kill", bare_subprocess_kill)
 #undef V
 
 #define V(name) \
