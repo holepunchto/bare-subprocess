@@ -32,10 +32,10 @@ exports.spawn = function spawn (command, args, opts) {
   if (Array.isArray(args)) {
     args = [...args]
   } else if (args === null) {
-    args = ''
+    args = []
   } else {
     opts = args
-    args = ''
+    args = []
   }
 
   args = [command, ...args]
