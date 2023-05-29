@@ -36,6 +36,14 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
     return this.stdio[2]
   }
 
+  ref () {
+    binding.ref(this._handle)
+  }
+
+  unref () {
+    binding.unref(this._handle)
+  }
+
   kill (signum = signals.SIGTERM) {
     if (typeof signum === 'string' && signum in signals) {
       signum = signals[signum]

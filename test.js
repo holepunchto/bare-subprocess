@@ -25,3 +25,16 @@ test('kill', (t) => {
     .on('exit', () => t.pass('exited'))
     .kill()
 })
+
+test('unref', (t) => {
+  t.plan(1)
+
+  const subprocess = spawn('bare', ['test/fixtures/spin.js'])
+
+  subprocess.unref()
+
+  process.on('exit', () => {
+    t.pass('process exited')
+    subprocess.kill()
+  })
+})

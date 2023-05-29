@@ -295,6 +295,48 @@ bare_subprocess_kill (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
+bare_subprocess_ref (js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  bare_subprocess_t *handle;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &handle, NULL);
+  assert(err == 0);
+
+  uv_ref((uv_handle_t *) handle);
+
+  return NULL;
+}
+
+static js_value_t *
+bare_subprocess_unref (js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  bare_subprocess_t *handle;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &handle, NULL);
+  assert(err == 0);
+
+  uv_unref((uv_handle_t *) handle);
+
+  return NULL;
+}
+
+static js_value_t *
 init (js_env_t *env, js_value_t *exports) {
 #define V(name, fn) \
   { \
@@ -305,6 +347,8 @@ init (js_env_t *env, js_value_t *exports) {
   V("init", bare_subprocess_init)
   V("spawn", bare_subprocess_spawn)
   V("kill", bare_subprocess_kill)
+  V("ref", bare_subprocess_ref)
+  V("unref", bare_subprocess_unref)
 #undef V
 
 #define V(name) \
