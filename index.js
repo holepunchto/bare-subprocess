@@ -12,11 +12,13 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
     this.pid = null
     this.stdio = []
     this.exitCode = null
+    this.signalCode = null
     this.killed = false
   }
 
   _onexit (code, signal) {
     this.exitCode = code
+    this.signalCode = signal
     this.emit('exit', code, signal)
   }
 
