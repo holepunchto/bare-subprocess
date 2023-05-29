@@ -9,6 +9,8 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
 
     this._handle = binding.init(this, this._onexit)
 
+    this.spawnfile = null
+    this.spawnargs = []
     this.pid = null
     this.stdio = []
     this.exitCode = null
@@ -45,7 +47,7 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
   }
 }
 
-exports.spawn = function spawn (command, args, opts) {
+exports.spawn = function spawn (file, args, opts) {
   if (Array.isArray(args)) {
     args = [...args]
   } else if (args === null) {
@@ -54,8 +56,6 @@ exports.spawn = function spawn (command, args, opts) {
     opts = args
     args = []
   }
-
-  args = [command, ...args]
 
   if (!opts) opts = {}
 
@@ -75,6 +75,9 @@ exports.spawn = function spawn (command, args, opts) {
   if (typeof stdio === 'string') stdio = [stdio, stdio, stdio]
 
   const subprocess = new Subprocess()
+
+  subprocess.spawnfile = file
+  subprocess.spawnargs = args
 
   for (let i = 0, n = stdio.length; i < n; i++) {
     subprocess.stdio[i] = null
@@ -97,7 +100,7 @@ exports.spawn = function spawn (command, args, opts) {
   }
 
   subprocess.pid = binding.spawn(subprocess._handle,
-    command,
+    file,
     args,
     cwd,
     pairs,

@@ -100,15 +100,17 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
   err = js_get_arraybuffer_info(env, argv[0], (void **) &handle, NULL);
   assert(err == 0);
 
-  bare_subprocess_path_t command;
-  err = js_get_value_string_utf8(env, argv[1], command, sizeof(bare_subprocess_path_t), NULL);
+  bare_subprocess_path_t file;
+  err = js_get_value_string_utf8(env, argv[1], file, sizeof(bare_subprocess_path_t), NULL);
   assert(err == 0);
 
   uint32_t args_len;
   err = js_get_array_length(env, argv[2], &args_len);
   assert(err == 0);
 
-  utf8_t **args = calloc(args_len + 1 /* NULL */, sizeof(utf8_t *));
+  utf8_t **args = calloc(1 /* file */ + args_len + 1 /* NULL */, sizeof(utf8_t *));
+
+  args[0] = file;
 
   for (uint32_t i = 0; i < args_len; i++) {
     js_value_t *value;
@@ -125,7 +127,7 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
     err = js_get_value_string_utf8(env, value, arg, arg_len, NULL);
     assert(err == 0);
 
-    args[i] = arg;
+    args[i + 1] = arg;
   }
 
   bare_subprocess_path_t cwd;
@@ -226,7 +228,7 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
 
   uv_process_options_t opts = {
     .exit_cb = on_exit,
-    .file = (char *) command,
+    .file = (char *) file,
     .args = (char **) args,
     .env = (char **) pairs,
     .cwd = (char *) cwd,
@@ -240,7 +242,7 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
   err = uv_spawn(loop, (uv_process_t *) handle, &opts);
 
   for (uint32_t i = 0; i < args_len; i++) {
-    free(args[i]);
+    free(args[i + 1]);
   }
 
   for (uint32_t i = 0; i < pairs_len; i++) {
