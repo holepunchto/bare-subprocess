@@ -25,15 +25,15 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
   }
 
   get stdin () {
-    return this.stdio[0]
+    return this.stdio[0] || null
   }
 
   get stdout () {
-    return this.stdio[1]
+    return this.stdio[1] || null
   }
 
   get stderr () {
-    return this.stdio[2]
+    return this.stdio[2] || null
   }
 
   ref () {
@@ -70,7 +70,7 @@ exports.spawn = function spawn (file, args, opts) {
   let {
     cwd = process.cwd(),
     env = process.env,
-    stdio = 'pipe',
+    stdio = [],
     detached = false,
     uid = -1,
     gid = -1
@@ -80,17 +80,23 @@ exports.spawn = function spawn (file, args, opts) {
 
   for (const key in env) pairs.push(`${key}=${env[key]}`)
 
-  if (typeof stdio === 'string') stdio = [stdio, stdio, stdio]
+  if (Array.isArray(stdio)) {
+    stdio = [...stdio]
+  } else if (typeof stdio === 'string') {
+    stdio = [stdio, stdio, stdio]
+  } else {
+    stdio = []
+  }
 
   const subprocess = new Subprocess()
 
   subprocess.spawnfile = file
   subprocess.spawnargs = args
 
-  for (let i = 0, n = stdio.length; i < n; i++) {
+  for (let i = 0, n = Math.max(3, stdio.length); i < n; i++) {
     subprocess.stdio[i] = null
 
-    let fd = stdio[i]
+    let fd = stdio[i] || 'pipe'
 
     if (fd === 'inherit') fd = i < 3 ? i : 'ignore'
 
@@ -119,6 +125,82 @@ exports.spawn = function spawn (file, args, opts) {
   )
 
   return subprocess
+}
+
+exports.spawnSync = function spawn (file, args, opts) {
+  if (Array.isArray(args)) {
+    args = [...args]
+  } else if (args === null) {
+    args = []
+  } else {
+    opts = args
+    args = []
+  }
+
+  if (!opts) opts = {}
+
+  let {
+    cwd = process.cwd(),
+    env = process.env,
+    stdio = [],
+    detached = false,
+    uid = -1,
+    gid = -1
+  } = opts
+
+  const pairs = []
+
+  for (const key in env) pairs.push(`${key}=${env[key]}`)
+
+  if (Array.isArray(stdio)) {
+    stdio = [...stdio]
+  } else if (typeof stdio === 'string') {
+    stdio = [stdio, stdio, stdio]
+  } else {
+    stdio = []
+  }
+
+  const subprocess = new Subprocess()
+
+  for (let i = 0, n = Math.max(3, stdio.length); i < n; i++) {
+    subprocess.stdio[i] = null
+
+    let fd = stdio[i] || 'pipe'
+
+    if (fd === 'inherit') fd = i < 3 ? i : 'ignore'
+
+    if (fd === 'ignore' || i === 0 /* Always ignore stdin */) {
+      stdio[i] = { flags: binding.UV_IGNORE }
+    } else if (fd === 'pipe') {
+      const pipe = new Pipe()
+
+      stdio[i] = { flags: binding.UV_CREATE_PIPE | binding.UV_READABLE_PIPE | binding.UV_WRITABLE_PIPE, pipe: pipe._handle }
+
+      subprocess.stdio[i] = pipe
+    } else if (typeof fd === 'number') {
+      stdio[i] = { flags: binding.UV_INHERIT_FD, fd }
+    }
+  }
+
+  subprocess.pid = binding.spawnSync(subprocess._handle,
+    file,
+    args,
+    cwd,
+    pairs,
+    stdio,
+    detached,
+    uid,
+    gid
+  )
+
+  return {
+    status: subprocess.exitCode,
+    signal: subprocess.signalCode,
+    output: subprocess.stdio,
+    pid: subprocess.pid,
+    stdout: subprocess.stdout,
+    stderr: subprocess.stderr
+  }
 }
 
 const signals = exports.constants = Signal.constants

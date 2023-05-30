@@ -1,5 +1,5 @@
 const test = require('brittle')
-const { spawn } = require('.')
+const { spawn, spawnSync } = require('.')
 
 test('basic', (t) => {
   t.plan(2)
@@ -37,4 +37,16 @@ test('unref', (t) => {
     t.pass('process exited')
     subprocess.kill()
   })
+})
+
+test('sync', (t) => {
+  t.plan(2)
+
+  const subprocess = spawnSync('bare', ['test/fixtures/hello.js'])
+
+  t.is(subprocess.status, 0)
+
+  // TODO: Make I/O sync
+  subprocess.stdout
+    .on('data', (data) => t.alike(data, Buffer.from('hello\n')))
 })
