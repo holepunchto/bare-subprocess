@@ -409,7 +409,7 @@ bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
   assert(err == 0);
 
   uv_process_options_t opts = {
-    .exit_cb = on_exit,
+    .exit_cb = on_process_exit,
     .file = (char *) file,
     .args = (char **) args,
     .env = (char **) pairs,
