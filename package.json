@@ -1,6 +1,6 @@
 {
   "name": "bare-subprocess",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Native process spawning for JavaScript",
   "main": "index.js",
   "files": [
@@ -11,9 +11,7 @@
     "prebuilds"
   ],
   "scripts": {
-    "test": "standard && bare test.js",
-    "install": "bare-dev rebuild",
-    "prebuild": "bare-dev prebuild"
+    "test": "standard && bare test.js"
   },
   "repository": {
     "type": "git",

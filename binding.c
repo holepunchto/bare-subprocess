@@ -16,7 +16,7 @@ typedef struct {
 typedef utf8_t bare_subprocess_path_t[4096 + 1 /* NULL */];
 
 static void
-on_exit (uv_process_t *uv_handle, int64_t exit_status, int term_signal) {
+on_process_exit (uv_process_t *uv_handle, int64_t exit_status, int term_signal) {
   int err;
 
   bare_subprocess_t *handle = (bare_subprocess_t *) uv_handle;
@@ -227,7 +227,7 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
   js_get_env_loop(env, &loop);
 
   uv_process_options_t opts = {
-    .exit_cb = on_exit,
+    .exit_cb = on_process_exit,
     .file = (char *) file,
     .args = (char **) args,
     .env = (char **) pairs,

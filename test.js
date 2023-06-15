@@ -4,7 +4,7 @@ const { spawn, spawnSync } = require('.')
 test('basic', (t) => {
   t.plan(2)
 
-  const subprocess = spawn('bare', ['test/fixtures/hello.js'])
+  const subprocess = spawn(process.execPath, ['test/fixtures/hello.js'])
 
   subprocess
     .on('exit', () => t.pass('exited'))
@@ -19,7 +19,7 @@ test('basic', (t) => {
 test('kill', (t) => {
   t.plan(1)
 
-  const subprocess = spawn('bare', ['test/fixtures/spin.js'])
+  const subprocess = spawn(process.execPath, ['test/fixtures/spin.js'])
 
   subprocess
     .on('exit', () => t.pass('exited'))
@@ -29,14 +29,17 @@ test('kill', (t) => {
 test('unref', (t) => {
   t.plan(1)
 
-  const subprocess = spawn('bare', ['test/fixtures/spin.js'])
+  const subprocess = spawn(process.execPath, ['test/fixtures/spin.js'])
 
   subprocess.unref()
 
-  process.on('exit', () => {
+  process.prependListener('beforeExit', onbeforeexit)
+
+  function onbeforeexit () {
+    process.removeListener('beforeExit', onbeforeexit)
     t.pass('process exited')
     subprocess.kill()
-  })
+  }
 })
 
 test('sync', (t) => {
