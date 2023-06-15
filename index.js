@@ -142,10 +142,12 @@ exports.spawnSync = function spawn (file, args, opts) {
   let {
     cwd = process.cwd(),
     env = process.env,
+    input = null,
     stdio = [],
     detached = false,
     uid = -1,
-    gid = -1
+    gid = -1,
+    maxBuffer = 1024 * 1024
   } = opts
 
   const pairs = []
@@ -162,21 +164,27 @@ exports.spawnSync = function spawn (file, args, opts) {
 
   const subprocess = new Subprocess()
 
-  for (let i = 0, n = Math.max(3, stdio.length); i < n; i++) {
+  if (input) {
+    stdio[0] = { flags: binding.UV_CREATE_PIPE | binding.UV_READABLE_PIPE, buffer: input }
+
+    process.stdio[0] = null
+  }
+
+  for (let i = input ? 1 : 0, n = Math.max(3, stdio.length); i < n; i++) {
     subprocess.stdio[i] = null
 
     let fd = stdio[i] || 'pipe'
 
     if (fd === 'inherit') fd = i < 3 ? i : 'ignore'
 
-    if (fd === 'ignore' || i === 0 /* Always ignore stdin */) {
+    if (fd === 'ignore') {
       stdio[i] = { flags: binding.UV_IGNORE }
     } else if (fd === 'pipe') {
-      const pipe = new Pipe()
+      const buffer = Buffer.alloc(maxBuffer)
 
-      stdio[i] = { flags: binding.UV_CREATE_PIPE | binding.UV_READABLE_PIPE | binding.UV_WRITABLE_PIPE, pipe: pipe._handle }
+      stdio[i] = { flags: binding.UV_CREATE_PIPE | binding.UV_WRITABLE_PIPE, buffer, written: 0 }
 
-      subprocess.stdio[i] = pipe
+      if (i > 0) subprocess.stdio[i] = buffer
     } else if (typeof fd === 'number') {
       stdio[i] = { flags: binding.UV_INHERIT_FD, fd }
     }
@@ -192,6 +200,12 @@ exports.spawnSync = function spawn (file, args, opts) {
     uid,
     gid
   )
+
+  for (let i = 1, n = stdio.length; i < n; i++) {
+    if (stdio[i].flags & binding.UV_WRITABLE_PIPE) {
+      subprocess.stdio[i] = subprocess.stdio[i].subarray(0, stdio[i].written)
+    }
+  }
 
   return {
     status: subprocess.exitCode,

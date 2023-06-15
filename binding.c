@@ -13,7 +13,28 @@ typedef struct {
   js_ref_t *on_exit;
 } bare_subprocess_t;
 
+typedef struct {
+  uv_pipe_t pipe;
+  uv_buf_t buf;
+  size_t written;
+} bare_subprocess_buffered_pipe_t;
+
 typedef utf8_t bare_subprocess_path_t[4096 + 1 /* NULL */];
+
+static void
+on_process_close (uv_handle_t *uv_handle) {
+  int err;
+
+  bare_subprocess_t *handle = (bare_subprocess_t *) uv_handle;
+
+  js_env_t *env = handle->env;
+
+  err = js_delete_reference(env, handle->on_exit);
+  assert(err == 0);
+
+  err = js_delete_reference(env, handle->ctx);
+  assert(err == 0);
+}
 
 static void
 on_process_exit (uv_process_t *uv_handle, int64_t exit_status, int term_signal) {
@@ -48,11 +69,32 @@ on_process_exit (uv_process_t *uv_handle, int64_t exit_status, int term_signal) 
   err = js_close_handle_scope(env, scope);
   assert(err == 0);
 
-  err = js_delete_reference(env, handle->on_exit);
-  assert(err == 0);
+  uv_close((uv_handle_t *) handle, on_process_close);
+}
 
-  err = js_delete_reference(env, handle->ctx);
-  assert(err == 0);
+static void
+on_buffered_alloc (uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
+  bare_subprocess_buffered_pipe_t *pipe = (bare_subprocess_buffered_pipe_t *) handle;
+
+  *buf = pipe->buf;
+}
+
+static void
+on_buffered_read (uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
+  if (nread == 0) return;
+
+  if (nread == UV_EOF) {
+    uv_close((uv_handle_t *) stream, NULL);
+  } else {
+    int err;
+
+    bare_subprocess_buffered_pipe_t *pipe = (bare_subprocess_buffered_pipe_t *) stream;
+
+    pipe->buf.base += nread;
+    pipe->buf.len -= nread;
+
+    pipe->written += nread;
+  }
 }
 
 static js_value_t *
@@ -96,6 +138,9 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
 
   assert(argc == 9);
 
+  uv_loop_t *loop;
+  js_get_env_loop(env, &loop);
+
   bare_subprocess_t *handle;
   err = js_get_arraybuffer_info(env, argv[0], (void **) &handle, NULL);
   assert(err == 0);
@@ -222,9 +267,6 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
   if (detached) flags |= UV_PROCESS_DETACHED;
   if (uid != (uint32_t) -1) flags |= UV_PROCESS_SETUID;
   if (gid != (uint32_t) -1) flags |= UV_PROCESS_SETGID;
-
-  uv_loop_t *loop;
-  js_get_env_loop(env, &loop);
 
   uv_process_options_t opts = {
     .exit_cb = on_process_exit,
@@ -241,6 +283,15 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
 
   err = uv_spawn(loop, (uv_process_t *) handle, &opts);
 
+  js_value_t *pid = NULL;
+
+  if (err < 0) {
+    js_throw_error(env, uv_err_name(err), uv_strerror(err));
+  } else {
+    err = js_create_uint32(env, handle->process.pid, &pid);
+    assert(err == 0);
+  }
+
   for (uint32_t i = 0; i < args_len; i++) {
     free(args[i + 1]);
   }
@@ -252,15 +303,6 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
   free(args);
   free(pairs);
   free(stdio);
-
-  js_value_t *pid = NULL;
-
-  if (err < 0) {
-    js_throw_error(env, uv_err_name(err), uv_strerror(err));
-  } else {
-    err = js_create_uint32(env, handle->process.pid, &pid);
-    assert(err == 0);
-  }
 
   return pid;
 }
@@ -276,6 +318,10 @@ bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
   assert(err == 0);
 
   assert(argc == 9);
+
+  uv_loop_t loop;
+  err = uv_loop_init(&loop);
+  assert(err == 0);
 
   bare_subprocess_t *handle;
   err = js_get_arraybuffer_info(env, argv[0], (void **) &handle, NULL);
@@ -375,14 +421,20 @@ bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
     }
 
     if (flags & UV_CREATE_PIPE) {
-      err = js_get_named_property(env, value, "pipe", &property);
+      err = js_get_named_property(env, value, "buffer", &property);
       assert(err == 0);
 
-      uv_stream_t *pipe;
-      err = js_get_typedarray_info(env, property, NULL, (void **) &pipe, NULL, NULL, NULL);
+      bare_subprocess_buffered_pipe_t *pipe = malloc(sizeof(bare_subprocess_buffered_pipe_t));
+
+      pipe->written = 0;
+
+      err = uv_pipe_init(&loop, (uv_pipe_t *) pipe, false);
       assert(err == 0);
 
-      stdio[i].data.stream = pipe;
+      err = js_get_typedarray_info(env, property, NULL, (void **) &pipe->buf.base, &pipe->buf.len, NULL, NULL);
+      assert(err == 0);
+
+      stdio[i].data.stream = (uv_stream_t *) pipe;
     }
   }
 
@@ -404,10 +456,6 @@ bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
   if (uid != (uint32_t) -1) flags |= UV_PROCESS_SETUID;
   if (gid != (uint32_t) -1) flags |= UV_PROCESS_SETGID;
 
-  uv_loop_t loop;
-  err = uv_loop_init(&loop);
-  assert(err == 0);
-
   uv_process_options_t opts = {
     .exit_cb = on_process_exit,
     .file = (char *) file,
@@ -423,17 +471,14 @@ bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
 
   err = uv_spawn(&loop, (uv_process_t *) handle, &opts);
 
-  for (uint32_t i = 0; i < args_len; i++) {
-    free(args[i + 1]);
-  }
+  for (uint32_t i = 0; i < stdio_len; i++) {
+    if (stdio[i].flags & UV_CREATE_PIPE) {
+      bare_subprocess_buffered_pipe_t *pipe = (bare_subprocess_buffered_pipe_t *) stdio[i].data.stream;
 
-  for (uint32_t i = 0; i < pairs_len; i++) {
-    free(pairs[i]);
+      err = uv_read_start((uv_stream_t *) pipe, on_buffered_alloc, on_buffered_read);
+      assert(err == 0);
+    }
   }
-
-  free(args);
-  free(pairs);
-  free(stdio);
 
   js_value_t *pid = NULL;
 
@@ -447,8 +492,41 @@ bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
     assert(err == 0);
   }
 
+  for (uint32_t i = 0; i < stdio_len; i++) {
+    js_value_t *value;
+    err = js_get_element(env, argv[5], i, &value);
+    assert(err == 0);
+
+    js_value_t *property;
+
+    if (stdio[i].flags & UV_CREATE_PIPE) {
+      bare_subprocess_buffered_pipe_t *pipe = (bare_subprocess_buffered_pipe_t *) stdio[i].data.stream;
+
+      js_value_t *written;
+      err = js_create_int64(env, pipe->written, &written);
+      assert(err == 0);
+
+      err = js_set_named_property(env, value, "written", written);
+      assert(err == 0);
+
+      free(pipe);
+    }
+  }
+
   err = uv_loop_close(&loop);
   assert(err == 0);
+
+  for (uint32_t i = 0; i < args_len; i++) {
+    free(args[i + 1]);
+  }
+
+  for (uint32_t i = 0; i < pairs_len; i++) {
+    free(pairs[i]);
+  }
+
+  free(args);
+  free(pairs);
+  free(stdio);
 
   return pid;
 }
