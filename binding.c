@@ -551,10 +551,10 @@ bare_subprocess_kill (js_env_t *env, js_callback_info_t *info) {
   err = js_get_value_uint32(env, argv[1], &signum);
   assert(err == 0);
 
-  err = uv_kill(handle->process.pid, signum);
-
+  err = uv_process_kill(&handle->process, signum);
   if (err < 0) {
     js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    return NULL;
   }
 
   return NULL;

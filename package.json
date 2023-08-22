@@ -8,6 +8,7 @@
     "binding.c",
     "binding.js",
     "CMakeLists.txt",
+    "lib",
     "prebuilds"
   ],
   "scripts": {
@@ -24,8 +25,7 @@
   },
   "homepage": "https://github.com/holepunchto/bare-subprocess#readme",
   "dependencies": {
-    "bare-pipe": "^1.1.0",
-    "bare-signals": "^1.0.0"
+    "bare-pipe": "^1.1.0"
   },
   "devDependencies": {
     "brittle": "^3.2.1",

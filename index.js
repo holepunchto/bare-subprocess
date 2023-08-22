@@ -1,7 +1,8 @@
 const EventEmitter = require('events')
+const os = require('os')
 const Pipe = require('bare-pipe')
-const Signal = require('bare-signals')
 const binding = require('./binding')
+const errors = require('./lib/errors')
 
 const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
   constructor () {
@@ -45,7 +46,11 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
   }
 
   kill (signum = signals.SIGTERM) {
-    if (typeof signum === 'string' && signum in signals) {
+    if (typeof signum === 'string') {
+      if (signum in signals === false) {
+        throw errors.UNKNOWN_SIGNAL('Unknown signal: ' + signum)
+      }
+
       signum = signals[signum]
     }
 
@@ -217,4 +222,4 @@ exports.spawnSync = function spawn (file, args, opts) {
   }
 }
 
-const signals = exports.constants = Signal.constants
+const signals = exports.constants = os.constants.signals
