@@ -38,10 +38,18 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
   }
 
   ref () {
+    for (const pipe of this.stdio) {
+      if (pipe) pipe.ref()
+    }
+
     binding.ref(this._handle)
   }
 
   unref () {
+    for (const pipe of this.stdio) {
+      if (pipe) pipe.unref()
+    }
+
     binding.unref(this._handle)
   }
 

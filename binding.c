@@ -243,7 +243,7 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
       assert(err == 0);
 
       uv_stream_t *pipe;
-      err = js_get_typedarray_info(env, property, NULL, (void **) &pipe, NULL, NULL, NULL);
+      err = js_get_arraybuffer_info(env, property, (void **) &pipe, NULL);
       assert(err == 0);
 
       stdio[i].data.stream = pipe;
