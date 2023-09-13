@@ -16,6 +16,15 @@ test('basic', (t) => {
     .on('data', (err) => t.fail(err.toString()))
 })
 
+test('symlink', (t) => {
+  t.plan(1)
+
+  const subprocess = spawn(process.execPath, ['test/fixtures/link.js'])
+
+  subprocess
+    .on('exit', () => t.pass('exited'))
+})
+
 test('kill', (t) => {
   t.plan(1)
 
@@ -29,7 +38,7 @@ test('kill', (t) => {
 test('sync', (t) => {
   t.plan(2)
 
-  const subprocess = spawnSync('bare', ['test/fixtures/hello.js'])
+  const subprocess = spawnSync(process.execPath, ['test/fixtures/hello.js'])
 
   t.is(subprocess.status, 0)
   t.alike(subprocess.stdout, Buffer.from('hello\n'))
