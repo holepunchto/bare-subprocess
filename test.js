@@ -55,11 +55,8 @@ test('unref', (t) => {
 
   subprocess.unref()
 
-  process.prependListener('beforeExit', onbeforeexit)
-
-  function onbeforeexit () {
-    process.removeListener('beforeExit', onbeforeexit)
+  process.prependOnceListener('beforeExit', () => {
     t.pass('process exited')
     subprocess.kill()
-  }
+  })
 })
