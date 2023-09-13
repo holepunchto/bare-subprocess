@@ -471,26 +471,36 @@ bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
 
   err = uv_spawn(&loop, (uv_process_t *) handle, &opts);
 
-  for (uint32_t i = 0; i < stdio_len; i++) {
-    if (stdio[i].flags & UV_CREATE_PIPE) {
-      bare_subprocess_buffered_pipe_t *pipe = (bare_subprocess_buffered_pipe_t *) stdio[i].data.stream;
-
-      err = uv_read_start((uv_stream_t *) pipe, on_buffered_alloc, on_buffered_read);
-      assert(err == 0);
-    }
-  }
-
   js_value_t *pid = NULL;
 
   if (err < 0) {
     js_throw_error(env, uv_err_name(err), uv_strerror(err));
+
+    uv_close((uv_handle_t *) handle, NULL);
+
+    for (uint32_t i = 0; i < stdio_len; i++) {
+      if (stdio[i].flags & UV_CREATE_PIPE) {
+        bare_subprocess_buffered_pipe_t *pipe = (bare_subprocess_buffered_pipe_t *) stdio[i].data.stream;
+
+        uv_close((uv_handle_t *) pipe, NULL);
+      }
+    }
   } else {
+    for (uint32_t i = 0; i < stdio_len; i++) {
+      if (stdio[i].flags & UV_CREATE_PIPE) {
+        bare_subprocess_buffered_pipe_t *pipe = (bare_subprocess_buffered_pipe_t *) stdio[i].data.stream;
+
+        err = uv_read_start((uv_stream_t *) pipe, on_buffered_alloc, on_buffered_read);
+        assert(err == 0);
+      }
+    }
+
     err = js_create_uint32(env, handle->process.pid, &pid);
     assert(err == 0);
-
-    err = uv_run(&loop, UV_RUN_DEFAULT);
-    assert(err == 0);
   }
+
+  err = uv_run(&loop, UV_RUN_DEFAULT);
+  assert(err == 0);
 
   for (uint32_t i = 0; i < stdio_len; i++) {
     js_value_t *value;

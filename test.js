@@ -35,6 +35,10 @@ test('sync', (t) => {
   t.alike(subprocess.stdout, Buffer.from('hello\n'))
 })
 
+test('sync, not found', (t) => {
+  t.exception(() => spawnSync('./this-does-not-exist'))
+})
+
 test('unref', (t) => {
   t.plan(1)
 
