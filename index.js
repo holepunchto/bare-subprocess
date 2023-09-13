@@ -80,6 +80,8 @@ exports.spawn = function spawn (file, args, opts) {
 
   if (!opts) opts = {}
 
+  args = args.map(String)
+
   let {
     cwd = process.cwd(),
     env = process.env,
