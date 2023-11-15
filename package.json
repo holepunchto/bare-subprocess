@@ -11,6 +11,9 @@
     "lib",
     "prebuilds"
   ],
+  "imports": {
+    "events": "bare-events"
+  },
   "scripts": {
     "test": "standard && bare test.js"
   },
@@ -25,7 +28,10 @@
   },
   "homepage": "https://github.com/holepunchto/bare-subprocess#readme",
   "dependencies": {
-    "bare-pipe": "^1.4.0"
+    "bare-env": "^2.0.0",
+    "bare-events": "^2.0.0",
+    "bare-os": "^2.0.0",
+    "bare-pipe": "^2.0.0"
   },
   "devDependencies": {
     "brittle": "^3.2.1",

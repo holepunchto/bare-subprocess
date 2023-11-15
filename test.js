@@ -1,10 +1,12 @@
+/* global Bare */
 const test = require('brittle')
+const os = require('bare-os')
 const { spawn, spawnSync } = require('.')
 
 test('basic', (t) => {
   t.plan(2)
 
-  const subprocess = spawn(process.execPath, ['test/fixtures/hello.js'])
+  const subprocess = spawn(os.execPath(), ['test/fixtures/hello.js'])
 
   subprocess
     .on('exit', () => t.pass('exited'))
@@ -19,7 +21,7 @@ test('basic', (t) => {
 test('symlink', (t) => {
   t.plan(1)
 
-  const subprocess = spawn(process.execPath, ['test/fixtures/link.js'])
+  const subprocess = spawn(os.execPath(), ['test/fixtures/link.js'])
 
   subprocess
     .on('exit', () => t.pass('exited'))
@@ -28,7 +30,7 @@ test('symlink', (t) => {
 test('kill', (t) => {
   t.plan(1)
 
-  const subprocess = spawn(process.execPath, ['test/fixtures/spin.js'])
+  const subprocess = spawn(os.execPath(), ['test/fixtures/spin.js'])
 
   subprocess
     .on('exit', () => t.pass('exited'))
@@ -38,7 +40,7 @@ test('kill', (t) => {
 test('sync', (t) => {
   t.plan(2)
 
-  const subprocess = spawnSync(process.execPath, ['test/fixtures/hello.js'])
+  const subprocess = spawnSync(os.execPath(), ['test/fixtures/hello.js'])
 
   t.is(subprocess.status, 0)
   t.alike(subprocess.stdout, Buffer.from('hello\n'))
@@ -51,11 +53,11 @@ test('sync, not found', (t) => {
 test('unref', (t) => {
   t.plan(1)
 
-  const subprocess = spawn(process.execPath, ['test/fixtures/spin.js'])
+  const subprocess = spawn(os.execPath(), ['test/fixtures/spin.js'])
 
   subprocess.unref()
 
-  process.prependOnceListener('beforeExit', () => {
+  Bare.prependOnceListener('beforeExit', () => {
     t.pass('process exited')
     subprocess.kill()
   })

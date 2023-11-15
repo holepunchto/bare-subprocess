@@ -1,5 +1,6 @@
-const EventEmitter = require('events')
-const os = require('os')
+const EventEmitter = require('bare-events')
+const os = require('bare-os')
+const env = require('bare-env')
 const Pipe = require('bare-pipe')
 const binding = require('./binding')
 const errors = require('./lib/errors')
@@ -83,8 +84,7 @@ exports.spawn = function spawn (file, args, opts) {
   args = args.map(String)
 
   let {
-    cwd = process.cwd(),
-    env = process.env,
+    cwd = os.cwd(),
     stdio = [],
     detached = false,
     uid = -1,
@@ -93,7 +93,7 @@ exports.spawn = function spawn (file, args, opts) {
 
   const pairs = []
 
-  for (const key in env) pairs.push(`${key}=${env[key]}`)
+  for (const key in opts.env || env) pairs.push(`${key}=${env[key]}`)
 
   if (Array.isArray(stdio)) {
     stdio = [...stdio]
@@ -155,8 +155,7 @@ exports.spawnSync = function spawn (file, args, opts) {
   if (!opts) opts = {}
 
   let {
-    cwd = process.cwd(),
-    env = process.env,
+    cwd = os.cwd(),
     input = null,
     stdio = [],
     detached = false,
@@ -167,7 +166,7 @@ exports.spawnSync = function spawn (file, args, opts) {
 
   const pairs = []
 
-  for (const key in env) pairs.push(`${key}=${env[key]}`)
+  for (const key in opts.env || env) pairs.push(`${key}=${env[key]}`)
 
   if (Array.isArray(stdio)) {
     stdio = [...stdio]
@@ -182,7 +181,7 @@ exports.spawnSync = function spawn (file, args, opts) {
   if (input) {
     stdio[0] = { flags: binding.UV_CREATE_PIPE | binding.UV_READABLE_PIPE, buffer: input }
 
-    process.stdio[0] = null
+    subprocess.stdio[0] = null
   }
 
   for (let i = input ? 1 : 0, n = Math.max(3, stdio.length); i < n; i++) {
