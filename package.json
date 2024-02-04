@@ -11,12 +11,6 @@
     "lib",
     "prebuilds"
   ],
-  "imports": {
-    "events": {
-      "bare": "bare-events",
-      "default": "events"
-    }
-  },
   "scripts": {
     "test": "standard && bare test.js"
   },
