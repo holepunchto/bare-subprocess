@@ -431,7 +431,7 @@ bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
       err = uv_pipe_init(&loop, (uv_pipe_t *) pipe, false);
       assert(err == 0);
 
-      err = js_get_typedarray_info(env, property, NULL, (void **) &pipe->buf.base, &pipe->buf.len, NULL, NULL);
+      err = js_get_typedarray_info(env, property, NULL, (void **) &pipe->buf.base, (size_t *) &pipe->buf.len, NULL, NULL);
       assert(err == 0);
 
       stdio[i].data.stream = (uv_stream_t *) pipe;
