@@ -7,7 +7,7 @@ include(bare)
 add_bare_module(bare_subprocess)
 
 target_sources(
-  bare_subprocess
+  ${bare_subprocess}
   PRIVATE
     binding.c
 )
