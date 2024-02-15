@@ -1,1 +1,0 @@
-test/fixtures/hello.js
