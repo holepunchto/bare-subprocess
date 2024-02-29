@@ -442,19 +442,19 @@ bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
   err = js_get_value_bool(env, argv[6], &detached);
   assert(err == 0);
 
-  uint32_t uid;
-  err = js_get_value_uint32(env, argv[7], &uid);
+  int32_t uid;
+  err = js_get_value_int32(env, argv[7], &uid);
   assert(err == 0);
 
-  uint32_t gid;
-  err = js_get_value_uint32(env, argv[8], &gid);
+  int32_t gid;
+  err = js_get_value_int32(env, argv[8], &gid);
   assert(err == 0);
 
   int flags = 0;
 
   if (detached) flags |= UV_PROCESS_DETACHED;
-  if (uid != (uint32_t) -1) flags |= UV_PROCESS_SETUID;
-  if (gid != (uint32_t) -1) flags |= UV_PROCESS_SETGID;
+  if (uid != -1) flags |= UV_PROCESS_SETUID;
+  if (gid != -1) flags |= UV_PROCESS_SETGID;
 
   uv_process_options_t opts = {
     .exit_cb = on_process_exit,
@@ -473,9 +473,9 @@ bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
 
   js_value_t *pid = NULL;
 
-  if (err < 0) {
-    js_throw_error(env, uv_err_name(err), uv_strerror(err));
+  int throw = err;
 
+  if (throw < 0) {
     uv_close((uv_handle_t *) handle, NULL);
 
     for (uint32_t i = 0; i < stdio_len; i++) {
@@ -537,6 +537,10 @@ bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
   free(args);
   free(pairs);
   free(stdio);
+
+  if (throw < 0) {
+    js_throw_error(env, uv_err_name(throw), uv_strerror(throw));
+  }
 
   return pid;
 }
