@@ -262,7 +262,7 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
   err = js_get_value_int32(env, argv[8], &gid);
   assert(err == 0);
 
-  int flags = 0;
+  int flags = UV_PROCESS_WINDOWS_HIDE_CONSOLE;
 
   if (detached) flags |= UV_PROCESS_DETACHED;
   if (uid != -1) flags |= UV_PROCESS_SETUID;
@@ -450,7 +450,7 @@ bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
   err = js_get_value_int32(env, argv[8], &gid);
   assert(err == 0);
 
-  int flags = 0;
+  int flags = UV_PROCESS_WINDOWS_HIDE_CONSOLE;
 
   if (detached) flags |= UV_PROCESS_DETACHED;
   if (uid != -1) flags |= UV_PROCESS_SETUID;
