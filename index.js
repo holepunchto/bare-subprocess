@@ -1,3 +1,4 @@
+/* global Bare */
 const EventEmitter = require('bare-events')
 const os = require('bare-os')
 const env = require('bare-env')
@@ -9,8 +10,6 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
   constructor () {
     super()
 
-    this._handle = binding.init(this, this._onexit)
-
     this.spawnfile = null
     this.spawnargs = []
     this.pid = null
@@ -18,11 +17,16 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
     this.exitCode = null
     this.signalCode = null
     this.killed = false
+
+    this._handle = binding.init(this, this._onexit)
   }
 
   _onexit (code, signal) {
     this.exitCode = code
     this.signalCode = signal
+
+    Subprocess._processes.delete(this)
+
     this.emit('exit', code, signal)
   }
 
@@ -67,6 +71,8 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
 
     this.killed = true
   }
+
+  static _processes = new Set()
 }
 
 exports.spawn = function spawn (file, args, opts) {
@@ -138,6 +144,8 @@ exports.spawn = function spawn (file, args, opts) {
     uid,
     gid
   )
+
+  Subprocess._processes.add(subprocess)
 
   return subprocess
 }
@@ -232,3 +240,9 @@ exports.spawnSync = function spawn (file, args, opts) {
 }
 
 const signals = exports.constants = os.constants.signals
+
+Bare.on('exit', () => {
+  for (const process of Subprocess._processes) {
+    binding.close(process._handle)
+  }
+})
