@@ -4,6 +4,7 @@ const os = require('bare-os')
 const env = require('bare-env')
 const Pipe = require('bare-pipe')
 const binding = require('./binding')
+const constants = require('./lib/constants')
 const errors = require('./lib/errors')
 
 const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
@@ -58,13 +59,13 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
     binding.unref(this._handle)
   }
 
-  kill (signum = signals.SIGTERM) {
+  kill (signum = constants.SIGTERM) {
     if (typeof signum === 'string') {
-      if (signum in signals === false) {
+      if (signum in constants === false) {
         throw errors.UNKNOWN_SIGNAL('Unknown signal: ' + signum)
       }
 
-      signum = signals[signum]
+      signum = constants[signum]
     }
 
     binding.kill(this._handle, signum)
@@ -74,6 +75,9 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
 
   static _processes = new Set()
 }
+
+exports.constants = constants
+exports.errors = errors
 
 exports.spawn = function spawn (file, args, opts) {
   if (Array.isArray(args)) {
@@ -125,6 +129,8 @@ exports.spawn = function spawn (file, args, opts) {
       stdio[i] = { flags: binding.UV_IGNORE }
     } else if (fd === 'pipe') {
       const pipe = new Pipe()
+
+      pipe._state |= Pipe.constants.state.CONNECTED
 
       stdio[i] = { flags: binding.UV_CREATE_PIPE | binding.UV_READABLE_PIPE | binding.UV_WRITABLE_PIPE, pipe: pipe._handle }
 
@@ -238,8 +244,6 @@ exports.spawnSync = function spawn (file, args, opts) {
     stderr: subprocess.stderr
   }
 }
-
-const signals = exports.constants = os.constants.signals
 
 Bare.on('exit', () => {
   for (const process of Subprocess._processes) {

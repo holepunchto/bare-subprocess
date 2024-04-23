@@ -2,7 +2,12 @@
   "name": "bare-subprocess",
   "version": "2.0.7",
   "description": "Native process spawning for JavaScript",
-  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package": "./package.json",
+    "./constants": "./lib/constants.js",
+    "./errors": "./lib/errors.js"
+  },
   "files": [
     "index.js",
     "binding.c",
@@ -29,7 +34,7 @@
     "bare-env": "^2.0.0",
     "bare-events": "^2.0.0",
     "bare-os": "^2.2.0",
-    "bare-pipe": "^2.0.0"
+    "bare-pipe": "^3.0.0"
   },
   "devDependencies": {
     "brittle": "^3.2.1",
