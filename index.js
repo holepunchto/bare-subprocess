@@ -130,7 +130,7 @@ exports.spawn = function spawn (file, args, opts) {
     } else if (fd === 'pipe') {
       const pipe = new Pipe()
 
-      pipe._state |= Pipe.constants.state.CONNECTED
+      pipe._onspawn(true /* Readable */, true /* Writable */)
 
       stdio[i] = { flags: binding.UV_CREATE_PIPE | binding.UV_READABLE_PIPE | binding.UV_WRITABLE_PIPE, pipe: pipe._handle }
 

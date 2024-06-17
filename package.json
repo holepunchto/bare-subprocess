@@ -34,7 +34,7 @@
     "bare-env": "^2.0.0",
     "bare-events": "^2.0.0",
     "bare-os": "^2.2.0",
-    "bare-pipe": "^3.0.0"
+    "bare-pipe": "^3.3.0"
   },
   "devDependencies": {
     "brittle": "^3.2.1",
