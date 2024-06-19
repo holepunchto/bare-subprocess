@@ -41,10 +41,10 @@ test('sync, not found', (t) => {
   t.exception(() => spawnSync('./this-does-not-exist'))
 })
 
-test('pipe', (t) => {
+test('overlapped', (t) => {
   t.plan(1)
 
-  const subprocess = spawn(os.execPath(), ['test/fixtures/pipe.js'], { stdio: ['inherit', 'inherit', 'inherit', 'pipe'] })
+  const subprocess = spawn(os.execPath(), ['test/fixtures/pipe.js'], { stdio: ['inherit', 'inherit', 'inherit', 'overlapped'] })
 
   const pipe = subprocess.stdio[3]
 

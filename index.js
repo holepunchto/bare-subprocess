@@ -127,12 +127,16 @@ exports.spawn = function spawn (file, args, opts) {
 
     if (fd === 'ignore') {
       stdio[i] = { flags: binding.UV_IGNORE }
-    } else if (fd === 'pipe') {
+    } else if (fd === 'pipe' || fd === 'overlapped') {
       const pipe = new Pipe()
 
       pipe._onspawn(true /* Readable */, true /* Writable */)
 
-      stdio[i] = { flags: binding.UV_CREATE_PIPE | binding.UV_READABLE_PIPE | binding.UV_WRITABLE_PIPE | binding.UV_NONBLOCK_PIPE, pipe: pipe._handle }
+      let flags = binding.UV_CREATE_PIPE | binding.UV_READABLE_PIPE | binding.UV_WRITABLE_PIPE
+
+      if (fd === 'overlapped') flags |= binding.UV_NONBLOCK_PIPE
+
+      stdio[i] = { flags, pipe: pipe._handle }
 
       subprocess.stdio[i] = pipe
     } else {
