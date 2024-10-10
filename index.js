@@ -103,7 +103,7 @@ exports.spawn = function spawn (file, args, opts) {
 
   const pairs = []
 
-  for (const key in opts.env || env) pairs.push(`${key}=${env[key]}`)
+  for (const [key, value] of Object.entries(opts.env || env)) pairs.push(`${key}=${value}`)
 
   if (Array.isArray(stdio)) {
     stdio = [...stdio]
@@ -184,7 +184,7 @@ exports.spawnSync = function spawn (file, args, opts) {
 
   const pairs = []
 
-  for (const key in opts.env || env) pairs.push(`${key}=${env[key]}`)
+  for (const [key, value] of Object.entries(opts.env || env)) pairs.push(`${key}=${value}`)
 
   if (Array.isArray(stdio)) {
     stdio = [...stdio]

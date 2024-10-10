@@ -65,6 +65,15 @@ test('overlapped', (t) => {
     .end('hello')
 })
 
+test('env', (t) => {
+  t.plan(1)
+
+  const subprocess = spawn(os.execPath(), ['test/fixtures/env.js'], { env: { KEY: 'VALUE' } })
+
+  subprocess.stdout
+    .on('data', (data) => t.alike(data, Buffer.from('VALUE' + os.EOL)))
+})
+
 test('unref', (t) => {
   t.plan(1)
 
