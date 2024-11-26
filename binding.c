@@ -159,7 +159,8 @@ bare_subprocess_spawn(js_env_t *env, js_callback_info_t *info) {
   assert(argc == 9);
 
   uv_loop_t *loop;
-  js_get_env_loop(env, &loop);
+  err = js_get_env_loop(env, &loop);
+  assert(err == 0);
 
   bare_subprocess_t *subprocess;
   err = js_get_arraybuffer_info(env, argv[0], (void **) &subprocess, NULL);
@@ -496,7 +497,7 @@ bare_subprocess_spawn_sync(js_env_t *env, js_callback_info_t *info) {
   int throw = err;
 
   if (throw < 0) {
-    uv_close((uv_handle_t *) &subprocess->handle, NULL);
+    uv_close((uv_handle_t *) &subprocess->handle, bare_subprocess__on_close);
 
     for (uint32_t i = 0; i < stdio_len; i++) {
       if (stdio[i].flags & UV_CREATE_PIPE) {
@@ -586,6 +587,7 @@ bare_subprocess_kill(js_env_t *env, js_callback_info_t *info) {
   assert(err == 0);
 
   err = uv_process_kill(&handle->handle, signum);
+
   if (err < 0) {
     js_throw_error(env, uv_err_name(err), uv_strerror(err));
     return NULL;
@@ -606,11 +608,11 @@ bare_subprocess_close(js_env_t *env, js_callback_info_t *info) {
 
   assert(argc == 1);
 
-  bare_subprocess_t *handle;
-  err = js_get_arraybuffer_info(env, argv[0], (void **) &handle, NULL);
+  bare_subprocess_t *subprocess;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &subprocess, NULL);
   assert(err == 0);
 
-  uv_close((uv_handle_t *) &handle->handle, bare_subprocess__on_close);
+  uv_close((uv_handle_t *) &subprocess->handle, bare_subprocess__on_close);
 
   return NULL;
 }
