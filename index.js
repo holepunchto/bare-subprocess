@@ -26,8 +26,6 @@ exports.Subprocess = class Subprocess extends EventEmitter {
     this.exitCode = code
     this.signalCode = signal
 
-    Subprocess._processes.delete(this)
-
     this.emit('exit', code, signal)
   }
 
@@ -72,8 +70,6 @@ exports.Subprocess = class Subprocess extends EventEmitter {
 
     this.killed = true
   }
-
-  static _processes = new Set()
 }
 
 exports.constants = constants
@@ -159,8 +155,6 @@ exports.spawn = function spawn(file, args, opts) {
     uid,
     gid
   )
-
-  exports.Subprocess._processes.add(subprocess)
 
   return subprocess
 }
@@ -262,9 +256,3 @@ exports.spawnSync = function spawn(file, args, opts) {
     stderr: subprocess.stderr
   }
 }
-
-Bare.on('exit', () => {
-  for (const process of exports.Subprocess._processes) {
-    binding.close(process._handle)
-  }
-})

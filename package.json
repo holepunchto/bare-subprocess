@@ -1,6 +1,6 @@
 {
   "name": "bare-subprocess",
-  "version": "4.0.3",
+  "version": "5.0.0-0",
   "description": "Native process spawning for JavaScript",
   "exports": {
     ".": "./index.js",
@@ -30,11 +30,14 @@
     "url": "https://github.com/holepunchto/bare-subprocess/issues"
   },
   "homepage": "https://github.com/holepunchto/bare-subprocess#readme",
+  "engines": {
+    "bare": ">=1.7.0"
+  },
   "dependencies": {
     "bare-env": "^3.0.0",
     "bare-events": "^2.0.0",
     "bare-os": "^3.0.1",
-    "bare-pipe": "^3.3.0"
+    "bare-pipe": "^4.0.0"
   },
   "devDependencies": {
     "brittle": "^3.2.1",
