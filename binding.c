@@ -22,7 +22,7 @@ typedef struct {
 typedef utf8_t bare_subprocess_path_t[4096 + 1 /* NULL */];
 
 static void
-bare_subprocess__on_process_close (uv_handle_t *uv_handle) {
+bare_subprocess__on_process_close(uv_handle_t *uv_handle) {
   int err;
 
   bare_subprocess_t *handle = (bare_subprocess_t *) uv_handle;
@@ -37,7 +37,7 @@ bare_subprocess__on_process_close (uv_handle_t *uv_handle) {
 }
 
 static void
-bare_subprocess__on_process_exit (uv_process_t *uv_handle, int64_t exit_status, int term_signal) {
+bare_subprocess__on_process_exit(uv_process_t *uv_handle, int64_t exit_status, int term_signal) {
   int err;
 
   bare_subprocess_t *handle = (bare_subprocess_t *) uv_handle;
@@ -73,14 +73,14 @@ bare_subprocess__on_process_exit (uv_process_t *uv_handle, int64_t exit_status, 
 }
 
 static void
-bare_subprocess__on_buffered_alloc (uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
+bare_subprocess__on_buffered_alloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
   bare_subprocess_buffered_pipe_t *pipe = (bare_subprocess_buffered_pipe_t *) handle;
 
   *buf = pipe->read;
 }
 
 static void
-bare_subprocess__on_buffered_read (uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
+bare_subprocess__on_buffered_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
   if (nread == 0) return;
 
   if (nread == UV_EOF) {
@@ -98,7 +98,7 @@ bare_subprocess__on_buffered_read (uv_stream_t *stream, ssize_t nread, const uv_
 }
 
 static js_value_t *
-bare_subprocess_init (js_env_t *env, js_callback_info_t *info) {
+bare_subprocess_init(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 2;
@@ -127,7 +127,7 @@ bare_subprocess_init (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
+bare_subprocess_spawn(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 9;
@@ -223,7 +223,7 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
     err = js_get_value_uint32(env, property, &flags);
     assert(err == 0);
 
-    stdio[i] = (uv_stdio_container_t){
+    stdio[i] = (uv_stdio_container_t) {
       .flags = flags,
     };
 
@@ -308,7 +308,7 @@ bare_subprocess_spawn (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
+bare_subprocess_spawn_sync(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 9;
@@ -405,7 +405,7 @@ bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
     err = js_get_value_uint32(env, property, &flags);
     assert(err == 0);
 
-    stdio[i] = (uv_stdio_container_t){
+    stdio[i] = (uv_stdio_container_t) {
       .flags = flags,
     };
 
@@ -546,7 +546,7 @@ bare_subprocess_spawn_sync (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_subprocess_kill (js_env_t *env, js_callback_info_t *info) {
+bare_subprocess_kill(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 2;
@@ -575,7 +575,7 @@ bare_subprocess_kill (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_subprocess_close (js_env_t *env, js_callback_info_t *info) {
+bare_subprocess_close(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 1;
@@ -596,7 +596,7 @@ bare_subprocess_close (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_subprocess_ref (js_env_t *env, js_callback_info_t *info) {
+bare_subprocess_ref(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 1;
@@ -617,7 +617,7 @@ bare_subprocess_ref (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_subprocess_unref (js_env_t *env, js_callback_info_t *info) {
+bare_subprocess_unref(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 1;
@@ -638,7 +638,7 @@ bare_subprocess_unref (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_subprocess_exports (js_env_t *env, js_value_t *exports) {
+bare_subprocess_exports(js_env_t *env, js_value_t *exports) {
   int err;
 
 #define V(name, fn) \

@@ -8,7 +8,7 @@ npm i bare-subprocess
 
 ## Usage
 
-``` js
+```js
 const { spawn } = require('bare-subprocess')
 
 const subprocess = spawn('echo', ['hello', 'world'], {

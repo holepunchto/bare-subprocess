@@ -7,8 +7,8 @@ const binding = require('./binding')
 const constants = require('./lib/constants')
 const errors = require('./lib/errors')
 
-const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
-  constructor () {
+exports.Subprocess = class Subprocess extends EventEmitter {
+  constructor() {
     super()
 
     this.spawnfile = null
@@ -22,7 +22,7 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
     this._handle = binding.init(this, this._onexit)
   }
 
-  _onexit (code, signal) {
+  _onexit(code, signal) {
     this.exitCode = code
     this.signalCode = signal
 
@@ -31,19 +31,19 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
     this.emit('exit', code, signal)
   }
 
-  get stdin () {
+  get stdin() {
     return this.stdio[0] || null
   }
 
-  get stdout () {
+  get stdout() {
     return this.stdio[1] || null
   }
 
-  get stderr () {
+  get stderr() {
     return this.stdio[2] || null
   }
 
-  ref () {
+  ref() {
     for (const pipe of this.stdio) {
       if (pipe) pipe.ref()
     }
@@ -51,7 +51,7 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
     binding.ref(this._handle)
   }
 
-  unref () {
+  unref() {
     for (const pipe of this.stdio) {
       if (pipe) pipe.unref()
     }
@@ -59,7 +59,7 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
     binding.unref(this._handle)
   }
 
-  kill (signum = constants.SIGTERM) {
+  kill(signum = constants.SIGTERM) {
     if (typeof signum === 'string') {
       if (signum in constants === false) {
         throw errors.UNKNOWN_SIGNAL('Unknown signal: ' + signum)
@@ -79,7 +79,7 @@ const Subprocess = exports.Subprocess = class Subprocess extends EventEmitter {
 exports.constants = constants
 exports.errors = errors
 
-exports.spawn = function spawn (file, args, opts) {
+exports.spawn = function spawn(file, args, opts) {
   if (Array.isArray(args)) {
     args = [...args]
   } else if (args === null) {
@@ -103,7 +103,8 @@ exports.spawn = function spawn (file, args, opts) {
 
   const pairs = []
 
-  for (const [key, value] of Object.entries(opts.env || env)) pairs.push(`${key}=${value}`)
+  for (const [key, value] of Object.entries(opts.env || env))
+    pairs.push(`${key}=${value}`)
 
   if (Array.isArray(stdio)) {
     stdio = [...stdio]
@@ -113,7 +114,7 @@ exports.spawn = function spawn (file, args, opts) {
     stdio = []
   }
 
-  const subprocess = new Subprocess()
+  const subprocess = new exports.Subprocess()
 
   subprocess.spawnfile = file
   subprocess.spawnargs = args
@@ -132,7 +133,10 @@ exports.spawn = function spawn (file, args, opts) {
 
       pipe._onspawn(true /* Readable */, true /* Writable */)
 
-      let flags = binding.UV_CREATE_PIPE | binding.UV_READABLE_PIPE | binding.UV_WRITABLE_PIPE
+      let flags =
+        binding.UV_CREATE_PIPE |
+        binding.UV_READABLE_PIPE |
+        binding.UV_WRITABLE_PIPE
 
       if (fd === 'overlapped') flags |= binding.UV_NONBLOCK_PIPE
 
@@ -144,7 +148,8 @@ exports.spawn = function spawn (file, args, opts) {
     }
   }
 
-  subprocess.pid = binding.spawn(subprocess._handle,
+  subprocess.pid = binding.spawn(
+    subprocess._handle,
     file,
     args,
     cwd,
@@ -155,12 +160,12 @@ exports.spawn = function spawn (file, args, opts) {
     gid
   )
 
-  Subprocess._processes.add(subprocess)
+  exports.Subprocess._processes.add(subprocess)
 
   return subprocess
 }
 
-exports.spawnSync = function spawn (file, args, opts) {
+exports.spawnSync = function spawn(file, args, opts) {
   if (Array.isArray(args)) {
     args = [...args]
   } else if (args === null) {
@@ -184,7 +189,8 @@ exports.spawnSync = function spawn (file, args, opts) {
 
   const pairs = []
 
-  for (const [key, value] of Object.entries(opts.env || env)) pairs.push(`${key}=${value}`)
+  for (const [key, value] of Object.entries(opts.env || env))
+    pairs.push(`${key}=${value}`)
 
   if (Array.isArray(stdio)) {
     stdio = [...stdio]
@@ -194,10 +200,13 @@ exports.spawnSync = function spawn (file, args, opts) {
     stdio = []
   }
 
-  const subprocess = new Subprocess()
+  const subprocess = new exports.Subprocess()
 
   if (input) {
-    stdio[0] = { flags: binding.UV_CREATE_PIPE | binding.UV_READABLE_PIPE, buffer: input }
+    stdio[0] = {
+      flags: binding.UV_CREATE_PIPE | binding.UV_READABLE_PIPE,
+      buffer: input
+    }
 
     subprocess.stdio[0] = null
   }
@@ -214,7 +223,11 @@ exports.spawnSync = function spawn (file, args, opts) {
     } else if (fd === 'pipe') {
       const buffer = Buffer.alloc(maxBuffer)
 
-      stdio[i] = { flags: binding.UV_CREATE_PIPE | binding.UV_WRITABLE_PIPE, buffer, written: 0 }
+      stdio[i] = {
+        flags: binding.UV_CREATE_PIPE | binding.UV_WRITABLE_PIPE,
+        buffer,
+        written: 0
+      }
 
       if (i > 0) subprocess.stdio[i] = buffer
     } else if (typeof fd === 'number') {
@@ -222,7 +235,8 @@ exports.spawnSync = function spawn (file, args, opts) {
     }
   }
 
-  subprocess.pid = binding.spawnSync(subprocess._handle,
+  subprocess.pid = binding.spawnSync(
+    subprocess._handle,
     file,
     args,
     cwd,
@@ -250,7 +264,7 @@ exports.spawnSync = function spawn (file, args, opts) {
 }
 
 Bare.on('exit', () => {
-  for (const process of Subprocess._processes) {
+  for (const process of exports.Subprocess._processes) {
     binding.close(process._handle)
   }
 })
