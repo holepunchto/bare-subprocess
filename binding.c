@@ -12,8 +12,9 @@ typedef struct {
   js_ref_t *ctx;
   js_ref_t *on_exit;
 
-  js_deferred_teardown_t *teardown;
   bool exiting;
+
+  js_deferred_teardown_t *teardown;
 } bare_subprocess_t;
 
 typedef struct {
@@ -32,13 +33,15 @@ bare_subprocess__on_close(uv_handle_t *handle) {
 
   js_env_t *env = subprocess->env;
 
-  err = js_finish_deferred_teardown_callback(subprocess->teardown);
-  assert(err == 0);
+  js_deferred_teardown_t *teardown = subprocess->teardown;
 
   err = js_delete_reference(env, subprocess->on_exit);
   assert(err == 0);
 
   err = js_delete_reference(env, subprocess->ctx);
+  assert(err == 0);
+
+  err = js_finish_deferred_teardown_callback(teardown);
   assert(err == 0);
 }
 
@@ -48,9 +51,11 @@ bare_subprocess__on_exit(uv_process_t *handle, int64_t exit_status, int term_sig
 
   bare_subprocess_t *subprocess = (bare_subprocess_t *) handle;
 
-  js_env_t *env = subprocess->env;
+  subprocess->handle.pid = 0;
 
-  if (subprocess->exiting) goto finalize;
+  if (subprocess->exiting) goto close;
+
+  js_env_t *env = subprocess->env;
 
   js_handle_scope_t *scope;
   err = js_open_handle_scope(env, &scope);
@@ -77,8 +82,22 @@ bare_subprocess__on_exit(uv_process_t *handle, int64_t exit_status, int term_sig
   err = js_close_handle_scope(env, scope);
   assert(err == 0);
 
-finalize:
+close:
   uv_close((uv_handle_t *) &subprocess->handle, bare_subprocess__on_close);
+}
+
+static void
+bare_subprocess__on_teardown(js_deferred_teardown_t *handle, void *data) {
+  int err;
+
+  bare_subprocess_t *subprocess = (bare_subprocess_t *) data;
+
+  subprocess->exiting = true;
+
+  if (subprocess->handle.pid == 0) return;
+
+  err = uv_process_kill(&subprocess->handle, SIGTERM);
+  assert(err == 0);
 }
 
 static void
@@ -104,13 +123,6 @@ bare_subprocess__on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf
 
     pipe->written += nread;
   }
-}
-
-static void
-bare_subprocess__on_teardown(js_deferred_teardown_t *handle, void *data) {
-  bare_subprocess_t *subprocess = (bare_subprocess_t *) data;
-
-  uv_close((uv_handle_t *) &subprocess->handle, bare_subprocess__on_close);
 }
 
 static js_value_t *
@@ -597,7 +609,7 @@ bare_subprocess_kill(js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_subprocess_close(js_env_t *env, js_callback_info_t *info) {
+bare_subprocess_ref(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 1;
@@ -612,28 +624,7 @@ bare_subprocess_close(js_env_t *env, js_callback_info_t *info) {
   err = js_get_arraybuffer_info(env, argv[0], (void **) &subprocess, NULL);
   assert(err == 0);
 
-  uv_close((uv_handle_t *) &subprocess->handle, bare_subprocess__on_close);
-
-  return NULL;
-}
-
-static js_value_t *
-bare_subprocess_ref(js_env_t *env, js_callback_info_t *info) {
-  int err;
-
-  size_t argc = 1;
-  js_value_t *argv[1];
-
-  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
-  assert(err == 0);
-
-  assert(argc == 1);
-
-  bare_subprocess_t *handle;
-  err = js_get_arraybuffer_info(env, argv[0], (void **) &handle, NULL);
-  assert(err == 0);
-
-  uv_ref((uv_handle_t *) handle);
+  uv_ref((uv_handle_t *) &subprocess->handle);
 
   return NULL;
 }
@@ -650,11 +641,11 @@ bare_subprocess_unref(js_env_t *env, js_callback_info_t *info) {
 
   assert(argc == 1);
 
-  bare_subprocess_t *handle;
-  err = js_get_arraybuffer_info(env, argv[0], (void **) &handle, NULL);
+  bare_subprocess_t *subprocess;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &subprocess, NULL);
   assert(err == 0);
 
-  uv_unref((uv_handle_t *) handle);
+  uv_unref((uv_handle_t *) &subprocess->handle);
 
   return NULL;
 }
@@ -676,7 +667,6 @@ bare_subprocess_exports(js_env_t *env, js_value_t *exports) {
   V("spawn", bare_subprocess_spawn)
   V("spawnSync", bare_subprocess_spawn_sync)
   V("kill", bare_subprocess_kill)
-  V("close", bare_subprocess_close)
   V("ref", bare_subprocess_ref)
   V("unref", bare_subprocess_unref)
 #undef V
