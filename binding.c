@@ -12,6 +12,7 @@ typedef struct {
   js_ref_t *ctx;
   js_ref_t *on_exit;
 
+  bool killed;
   bool exiting;
 
   js_deferred_teardown_t *teardown;
@@ -51,7 +52,7 @@ bare_subprocess__on_exit(uv_process_t *handle, int64_t exit_status, int term_sig
 
   bare_subprocess_t *subprocess = (bare_subprocess_t *) handle;
 
-  subprocess->handle.pid = 0;
+  subprocess->killed = true;
 
   if (subprocess->exiting) goto close;
 
@@ -94,7 +95,7 @@ bare_subprocess__on_teardown(js_deferred_teardown_t *handle, void *data) {
 
   subprocess->exiting = true;
 
-  if (subprocess->handle.pid == 0) return;
+  if (subprocess->killed) return;
 
   err = uv_process_kill(&subprocess->handle, SIGTERM);
   assert(err == 0);
@@ -144,6 +145,7 @@ bare_subprocess_init(js_env_t *env, js_callback_info_t *info) {
   assert(err == 0);
 
   subprocess->env = env;
+  subprocess->killed = false;
   subprocess->exiting = false;
 
   err = js_create_reference(env, argv[0], 1, &subprocess->ctx);
@@ -590,15 +592,19 @@ bare_subprocess_kill(js_env_t *env, js_callback_info_t *info) {
 
   assert(argc == 2);
 
-  bare_subprocess_t *handle;
-  err = js_get_arraybuffer_info(env, argv[0], (void **) &handle, NULL);
+  bare_subprocess_t *subprocess;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &subprocess, NULL);
   assert(err == 0);
+
+  if (subprocess->killed) return NULL;
 
   uint32_t signum;
   err = js_get_value_uint32(env, argv[1], &signum);
   assert(err == 0);
 
-  err = uv_process_kill(&handle->handle, signum);
+  subprocess->killed = true;
+
+  err = uv_process_kill(&subprocess->handle, signum);
 
   if (err < 0) {
     js_throw_error(env, uv_err_name(err), uv_strerror(err));
