@@ -86,3 +86,13 @@ test('unref', (t) => {
     subprocess.kill()
   })
 })
+
+test('pipe stdout', (t) => {
+  t.plan(1)
+
+  const subprocess = spawn(os.execPath(), ['test/fixtures/pipe-stdout.js'], {
+    stdio: ['ignore', 'ignore', 'inherit']
+  })
+
+  subprocess.on('exit', (code) => t.is(code, 0, 'should exit with code 0'))
+})
