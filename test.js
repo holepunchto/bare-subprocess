@@ -50,6 +50,21 @@ test('pipe', (t) => {
   pipe.on('data', (data) => t.alike(data, Buffer.from('hello'))).end('hello')
 })
 
+test('ignore standard streams', (t) => {
+  t.plan(2)
+
+  const subprocess = spawn(os.execPath(), ['test/fixtures/std-pipe.js'], {
+    stdio: 'ignore'
+  })
+
+  subprocess.on('exit', (code, signal) => {
+    t.is(code, 0)
+
+    t.comment('signal = ', signal)
+    t.is(signal, 0)
+  })
+})
+
 test('overlapped', (t) => {
   t.plan(1)
 
