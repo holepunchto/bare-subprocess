@@ -50,9 +50,9 @@
     "bare-pipe": "^4.0.0"
   },
   "devDependencies": {
+    "bare-assert": "^1.0.2",
     "bare-buffer": "^3.0.2",
     "bare-fs": "^4.1.2",
-    "bare-path": "^3.0.0",
     "brittle": "^3.2.1",
     "cmake-bare": "^1.1.7",
     "prettier": "^3.4.1",
