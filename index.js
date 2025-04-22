@@ -1,4 +1,3 @@
-/* global Bare */
 const EventEmitter = require('bare-events')
 const os = require('bare-os')
 const env = require('bare-env')

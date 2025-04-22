@@ -1,4 +1,3 @@
-/* global Bare */
 const test = require('brittle')
 const os = require('bare-os')
 const { spawn, spawnSync } = require('.')
@@ -60,6 +59,19 @@ test('overlapped', (t) => {
   const pipe = subprocess.stdio[3]
 
   pipe.on('data', (data) => t.alike(data, Buffer.from('hello'))).end('hello')
+})
+
+test('ignore', (t) => {
+  t.plan(2)
+
+  const subprocess = spawn(os.execPath(), ['test/fixtures/fs.js'], {
+    stdio: 'ignore'
+  })
+
+  subprocess.on('exit', (code, signal) => {
+    t.is(code, 0)
+    t.is(signal, 0)
+  })
 })
 
 test('env', (t) => {
