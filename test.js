@@ -1,7 +1,5 @@
-/* global Bare */
 const test = require('brittle')
 const os = require('bare-os')
-const fs = require('bare-fs')
 const { spawn, spawnSync } = require('.')
 
 test('basic', (t) => {
