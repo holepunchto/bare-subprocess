@@ -126,7 +126,7 @@ exports.spawn = function spawn(file, args, opts) {
     } else if (fd === 'pipe' || fd === 'overlapped') {
       const pipe = new Pipe()
 
-      pipe._onspawn(true /* Readable */, true /* Writable */)
+      pipe._onspawn(i !== 0 /* Readable */, i === 0 || i > 2 /* Writable */)
 
       let flags =
         binding.UV_CREATE_PIPE |

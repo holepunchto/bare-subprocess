@@ -114,7 +114,6 @@ test.solo('echo', (t) => {
     .on('data', (data) => {
       received.push(data)
     })
-    .end() // BUG
 
   subprocess.stdin
     .on('close', () => {
