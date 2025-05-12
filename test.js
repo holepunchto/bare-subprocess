@@ -86,6 +86,29 @@ test('env', (t) => {
   )
 })
 
+test('echo', (t) => {
+  t.plan(3)
+
+  const subprocess = spawn(os.execPath(), ['test/fixtures/echo.js'])
+
+  const received = []
+
+  subprocess.stdout
+    .on('close', () => {
+      t.pass('stdout closed')
+      t.alike(Buffer.concat(received), Buffer.alloc(4 * 1024 * 1024, 'hello'))
+    })
+    .on('data', (data) => {
+      received.push(data)
+    })
+
+  subprocess.stdin
+    .on('close', () => {
+      t.pass('stdin closed')
+    })
+    .end(Buffer.alloc(4 * 1024 * 1024, 'hello'))
+})
+
 test('unref', (t) => {
   t.plan(1)
 
