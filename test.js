@@ -86,20 +86,7 @@ test('env', (t) => {
   )
 })
 
-test('unref', (t) => {
-  t.plan(1)
-
-  const subprocess = spawn(os.execPath(), ['test/fixtures/spin.js'])
-
-  subprocess.unref()
-
-  Bare.prependOnceListener('beforeExit', () => {
-    t.pass('process exited')
-    subprocess.kill()
-  })
-})
-
-test.solo('echo', (t) => {
+test('echo', (t) => {
   t.plan(3)
 
   const subprocess = spawn(os.execPath(), ['test/fixtures/echo.js'])
@@ -120,4 +107,17 @@ test.solo('echo', (t) => {
       t.pass('stdin closed')
     })
     .end(Buffer.alloc(4 * 1024 * 1024, 'hello'))
+})
+
+test('unref', (t) => {
+  t.plan(1)
+
+  const subprocess = spawn(os.execPath(), ['test/fixtures/spin.js'])
+
+  subprocess.unref()
+
+  Bare.prependOnceListener('beforeExit', () => {
+    t.pass('process exited')
+    subprocess.kill()
+  })
 })
