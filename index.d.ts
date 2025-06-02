@@ -36,10 +36,13 @@ export class Subprocess {}
 export interface SpawnOptions {
   cwd?: string
   stdio?: [stdin?: IO, stdout?: IO, stderr?: IO, ...fds: IO[]] | IO | null
+  shell?: boolean | string
   detached?: boolean
   uid?: number
   gid?: number
   env?: Record<string, string>
+  windowsHide?: boolean
+  windowsVerbatimArguments?: boolean
 }
 
 export function spawn(
@@ -50,10 +53,15 @@ export function spawn(
 
 export function spawn(file: string, opts?: SpawnOptions): Subprocess
 
+export interface SpawnSyncOptions extends SpawnOptions {
+  input?: string | Buffer
+  maxBuffer?: number
+}
+
 export function spawnSync(
   file: string,
   args?: string[] | null,
-  opts?: SpawnOptions
+  opts?: SpawnSyncOptions
 ): {
   output: (Buffer | null)[]
   pid: number
@@ -65,7 +73,7 @@ export function spawnSync(
 
 export function spawnSync(
   file: string,
-  opts?: SpawnOptions
+  opts?: SpawnSyncOptions
 ): {
   output: (Buffer | null)[]
   pid: number

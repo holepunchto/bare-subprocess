@@ -89,17 +89,51 @@ exports.spawn = function spawn(file, args, opts) {
   args = args.map(String)
 
   let {
-    cwd = os.cwd(),
+    cwd = defaultCwd(),
+    env = defaultEnv(),
     stdio = [],
     detached = false,
+    shell = false,
     uid = -1,
-    gid = -1
+    gid = -1,
+    windowsHide = false,
+    windowsVerbatimArguments = false
   } = opts
+
+  if (shell) {
+    const command = [file, ...args].join(' ')
+
+    if (Bare.platform === 'win32') {
+      if (typeof shell === 'string') {
+        file = shell
+      } else {
+        file = env.comspec || 'cmd.exe'
+      }
+
+      if (/^(.*\\)?cmd(\.exe)?$/i.test(file)) {
+        args = ['/d', '/s', '/c', `"${command}"`]
+        windowsVerbatimArguments = true
+      } else {
+        args = ['-c', command]
+      }
+    } else {
+      if (typeof shell === 'string') {
+        file = shell
+      } else if (Bare.platform === 'android') {
+        file = '/system/bin/sh'
+      } else {
+        file = '/bin/sh'
+      }
+
+      args = ['-c', command]
+    }
+  }
 
   const pairs = []
 
-  for (const [key, value] of Object.entries(opts.env || env))
+  for (const [key, value] of Object.entries(env)) {
     pairs.push(`${key}=${value}`)
+  }
 
   if (Array.isArray(stdio)) {
     stdio = [...stdio]
@@ -152,7 +186,9 @@ exports.spawn = function spawn(file, args, opts) {
     stdio,
     detached,
     uid,
-    gid
+    gid,
+    windowsHide,
+    windowsVerbatimArguments
   )
 
   return subprocess
@@ -171,19 +207,53 @@ exports.spawnSync = function spawn(file, args, opts) {
   if (!opts) opts = {}
 
   let {
-    cwd = os.cwd(),
+    cwd = defaultCwd(),
+    env = defaultEnv(),
     input = null,
     stdio = [],
     detached = false,
+    shell = false,
     uid = -1,
     gid = -1,
+    windowsHide = false,
+    windowsVerbatimArguments = false,
     maxBuffer = 1024 * 1024
   } = opts
 
+  if (shell) {
+    const command = [file, ...args].join(' ')
+
+    if (Bare.platform === 'win32') {
+      if (typeof shell === 'string') {
+        file = shell
+      } else {
+        file = env.comspec || 'cmd.exe'
+      }
+
+      if (/^(.*\\)?cmd(\.exe)?$/i.test(file)) {
+        args = ['/d', '/s', '/c', `"${command}"`]
+        windowsVerbatimArguments = true
+      } else {
+        args = ['-c', command]
+      }
+    } else {
+      if (typeof shell === 'string') {
+        file = shell
+      } else if (Bare.platform === 'android') {
+        file = '/system/bin/sh'
+      } else {
+        file = '/bin/sh'
+      }
+
+      args = ['-c', command]
+    }
+  }
+
   const pairs = []
 
-  for (const [key, value] of Object.entries(opts.env || env))
+  for (const [key, value] of Object.entries(env)) {
     pairs.push(`${key}=${value}`)
+  }
 
   if (Array.isArray(stdio)) {
     stdio = [...stdio]
@@ -237,7 +307,9 @@ exports.spawnSync = function spawn(file, args, opts) {
     stdio,
     detached,
     uid,
-    gid
+    gid,
+    windowsHide,
+    windowsVerbatimArguments
   )
 
   for (let i = 1, n = stdio.length; i < n; i++) {
@@ -254,4 +326,12 @@ exports.spawnSync = function spawn(file, args, opts) {
     stdout: subprocess.stdout,
     stderr: subprocess.stderr
   }
+}
+
+function defaultCwd() {
+  return os.cwd()
+}
+
+function defaultEnv() {
+  return env
 }
