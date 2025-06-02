@@ -164,13 +164,13 @@ static js_value_t *
 bare_subprocess_spawn(js_env_t *env, js_callback_info_t *info) {
   int err;
 
-  size_t argc = 9;
-  js_value_t *argv[9];
+  size_t argc = 11;
+  js_value_t *argv[11];
 
   err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
   assert(err == 0);
 
-  assert(argc == 9);
+  assert(argc == 11);
 
   uv_loop_t *loop;
   err = js_get_env_loop(env, &loop);
@@ -297,11 +297,21 @@ bare_subprocess_spawn(js_env_t *env, js_callback_info_t *info) {
   err = js_get_value_int32(env, argv[8], &gid);
   assert(err == 0);
 
+  bool windows_hide;
+  err = js_get_value_bool(env, argv[9], &windows_hide);
+  assert(err == 0);
+
+  bool windows_verbatim_arguments;
+  err = js_get_value_bool(env, argv[10], &windows_verbatim_arguments);
+  assert(err == 0);
+
   int flags = UV_PROCESS_WINDOWS_HIDE_CONSOLE;
 
   if (detached) flags |= UV_PROCESS_DETACHED;
   if (uid != -1) flags |= UV_PROCESS_SETUID;
   if (gid != -1) flags |= UV_PROCESS_SETGID;
+  if (windows_hide) flags |= UV_PROCESS_WINDOWS_HIDE;
+  if (windows_verbatim_arguments) flags |= UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS;
 
   uv_process_options_t opts = {
     .exit_cb = bare_subprocess__on_exit,
@@ -346,13 +356,13 @@ static js_value_t *
 bare_subprocess_spawn_sync(js_env_t *env, js_callback_info_t *info) {
   int err;
 
-  size_t argc = 9;
-  js_value_t *argv[9];
+  size_t argc = 11;
+  js_value_t *argv[11];
 
   err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
   assert(err == 0);
 
-  assert(argc == 9);
+  assert(argc == 11);
 
   uv_loop_t loop;
   err = uv_loop_init(&loop);
@@ -485,11 +495,21 @@ bare_subprocess_spawn_sync(js_env_t *env, js_callback_info_t *info) {
   err = js_get_value_int32(env, argv[8], &gid);
   assert(err == 0);
 
+  bool windows_hide;
+  err = js_get_value_bool(env, argv[9], &windows_hide);
+  assert(err == 0);
+
+  bool windows_verbatim_arguments;
+  err = js_get_value_bool(env, argv[10], &windows_verbatim_arguments);
+  assert(err == 0);
+
   int flags = UV_PROCESS_WINDOWS_HIDE_CONSOLE;
 
   if (detached) flags |= UV_PROCESS_DETACHED;
   if (uid != -1) flags |= UV_PROCESS_SETUID;
   if (gid != -1) flags |= UV_PROCESS_SETGID;
+  if (windows_hide) flags |= UV_PROCESS_WINDOWS_HIDE;
+  if (windows_verbatim_arguments) flags |= UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS;
 
   uv_process_options_t opts = {
     .exit_cb = bare_subprocess__on_exit,
