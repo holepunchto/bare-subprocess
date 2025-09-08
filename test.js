@@ -109,6 +109,20 @@ test('echo', (t) => {
     .end(Buffer.alloc(4 * 1024 * 1024, 'hello'))
 })
 
+test('abort', (t) => {
+  t.plan(2)
+
+  const subprocess = spawn(os.execPath(), ['test/fixtures/abort.js'])
+
+  subprocess.on('exit', () => t.pass('exited'))
+
+  subprocess.stdout.on('data', (data) =>
+    t.alike(data, Buffer.from('before abort' + os.EOL))
+  )
+
+  subprocess.stderr.on('data', (err) => t.fail(err.toString()))
+})
+
 test('unref', (t) => {
   t.plan(1)
 
