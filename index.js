@@ -1,7 +1,9 @@
 const EventEmitter = require('bare-events')
+const Pipe = require('bare-pipe')
 const os = require('bare-os')
 const env = require('bare-env')
-const Pipe = require('bare-pipe')
+const path = require('bare-path')
+const { fileURLToPath } = require('bare-url')
 const binding = require('./binding')
 const constants = require('./lib/constants')
 const errors = require('./lib/errors')
@@ -99,6 +101,9 @@ exports.spawn = function spawn(file, args, opts) {
     windowsHide = false,
     windowsVerbatimArguments = false
   } = opts
+
+  file = toNamespacedPath(file)
+  cwd = toPath(cwd)
 
   if (shell) {
     const command = [file, ...args].join(' ')
@@ -220,6 +225,9 @@ exports.spawnSync = function spawn(file, args, opts) {
     maxBuffer = 1024 * 1024
   } = opts
 
+  file = toNamespacedPath(file)
+  cwd = toPath(cwd)
+
   if (shell) {
     const command = [file, ...args].join(' ')
 
@@ -334,4 +342,17 @@ function defaultCwd() {
 
 function defaultEnv() {
   return env
+}
+
+function toPath(filepath) {
+  if (typeof filepath !== 'string') {
+    if (URL.isURL(filepath)) filepath = fileURLToPath(filepath)
+    else filepath = filepath.toString()
+  }
+
+  return filepath
+}
+
+function toNamespacedPath(filepath) {
+  return path.toNamespacedPath(toPath(filepath))
 }
