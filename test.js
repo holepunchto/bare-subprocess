@@ -1,4 +1,5 @@
 const test = require('brittle')
+const fs = require('bare-fs')
 const os = require('bare-os')
 const { spawn, spawnSync } = require('.')
 
@@ -118,6 +119,32 @@ test('abort', (t) => {
 
   subprocess.stdout.on('data', (data) =>
     t.alike(data, Buffer.from('before abort' + os.EOL))
+  )
+
+  subprocess.stderr.on('data', (err) => t.fail(err.toString()))
+})
+
+test('long path', (t) => {
+  t.plan(2)
+
+  const dir = `test/fixtures/${'a'.repeat(128)}/${'b'.repeat(128)}/${'c'.repeat(128)}`
+
+  const file = `${dir}/${'d'.repeat(128)}.js`
+
+  fs.mkdirSync(dir, { recursive: true })
+
+  t.teardown(() =>
+    fs.rmSync(`test/fixtures/${'a'.repeat(128)}`, { recursive: true })
+  )
+
+  fs.copyFileSync('test/fixtures/hello.js', file)
+
+  const subprocess = spawn(os.execPath(), [file])
+
+  subprocess.on('exit', () => t.pass('exited'))
+
+  subprocess.stdout.on('data', (data) =>
+    t.alike(data, Buffer.from('hello' + os.EOL))
   )
 
   subprocess.stderr.on('data', (err) => t.fail(err.toString()))
