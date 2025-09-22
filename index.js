@@ -132,8 +132,6 @@ exports.spawn = function spawn(file, args, opts) {
 
       args = ['-c', command]
     }
-  } else {
-    file = toNamespacedPath(file)
   }
 
   const pairs = []
@@ -227,7 +225,7 @@ exports.spawnSync = function spawn(file, args, opts) {
     maxBuffer = 1024 * 1024
   } = opts
 
-  file = toNamespacedPath(file)
+  file = toPath(file)
   cwd = toPath(cwd)
 
   if (shell) {
@@ -353,8 +351,4 @@ function toPath(filepath) {
   }
 
   return filepath
-}
-
-function toNamespacedPath(filepath) {
-  return path.toNamespacedPath(toPath(filepath))
 }
