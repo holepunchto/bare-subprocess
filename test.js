@@ -125,7 +125,7 @@ test('abort', (t) => {
   subprocess.stderr.on('data', (err) => t.fail(err.toString()))
 })
 
-test('long path', (t) => {
+test('long path', { skip: Bare.platform === 'win32' }, (t) => {
   t.plan(2)
 
   const dir = `test/fixtures/${'a'.repeat(128)}/${'b'.repeat(128)}/${'c'.repeat(128)}`
