@@ -331,7 +331,8 @@ bare_subprocess_spawn(js_env_t *env, js_callback_info_t *info) {
   js_value_t *pid = NULL;
 
   if (err < 0) {
-    js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    err = js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    assert(err == 0);
   } else {
     err = js_create_uint32(env, subprocess->handle.pid, &pid);
     assert(err == 0);
@@ -594,7 +595,10 @@ bare_subprocess_spawn_sync(js_env_t *env, js_callback_info_t *info) {
   free(stdio);
 
   if (throw < 0) {
-    js_throw_error(env, uv_err_name(throw), uv_strerror(throw));
+    err = js_throw_error(env, uv_err_name(throw), uv_strerror(throw));
+    assert(err == 0);
+
+    return NULL;
   }
 
   return pid;
@@ -627,8 +631,8 @@ bare_subprocess_kill(js_env_t *env, js_callback_info_t *info) {
   err = uv_process_kill(&subprocess->handle, signum);
 
   if (err < 0) {
-    js_throw_error(env, uv_err_name(err), uv_strerror(err));
-    return NULL;
+    err = js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    assert(err == 0);
   }
 
   return NULL;

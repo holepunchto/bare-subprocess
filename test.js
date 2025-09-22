@@ -1,5 +1,7 @@
 const test = require('brittle')
+const fs = require('bare-fs')
 const os = require('bare-os')
+const path = require('bare-path')
 const { spawn, spawnSync } = require('.')
 
 test('basic', (t) => {
@@ -118,6 +120,32 @@ test('abort', (t) => {
 
   subprocess.stdout.on('data', (data) =>
     t.alike(data, Buffer.from('before abort' + os.EOL))
+  )
+
+  subprocess.stderr.on('data', (err) => t.fail(err.toString()))
+})
+
+test('long path', { skip: Bare.platform === 'win32' }, (t) => {
+  t.plan(2)
+
+  const dir = `test/fixtures/${'a'.repeat(128)}/${'b'.repeat(128)}/${'c'.repeat(128)}`
+
+  const file = `${dir}/${'d'.repeat(128)}`
+
+  fs.mkdirSync(dir, { recursive: true })
+
+  t.teardown(() =>
+    fs.rmSync(`test/fixtures/${'a'.repeat(128)}`, { recursive: true })
+  )
+
+  fs.copyFileSync(os.execPath(), file)
+
+  const subprocess = spawn(path.toNamespacedPath(file), ['-p', '"hello"'])
+
+  subprocess.on('exit', () => t.pass('exited'))
+
+  subprocess.stdout.on('data', (data) =>
+    t.alike(data, Buffer.from('hello' + os.EOL))
   )
 
   subprocess.stderr.on('data', (err) => t.fail(err.toString()))
