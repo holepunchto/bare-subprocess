@@ -102,7 +102,7 @@ exports.spawn = function spawn(file, args, opts) {
     windowsVerbatimArguments = false
   } = opts
 
-  file = toNamespacedPath(file)
+  file = toPath(file)
   cwd = toPath(cwd)
 
   if (shell) {
@@ -132,6 +132,8 @@ exports.spawn = function spawn(file, args, opts) {
 
       args = ['-c', command]
     }
+  } else {
+    file = toNamespacedPath(file)
   }
 
   const pairs = []
