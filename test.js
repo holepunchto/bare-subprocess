@@ -129,7 +129,7 @@ test('long path', (t) => {
 
   const dir = `test/fixtures/${'a'.repeat(128)}/${'b'.repeat(128)}/${'c'.repeat(128)}`
 
-  const file = `${dir}/${'d'.repeat(128)}.js`
+  const file = `${dir}/${'d'.repeat(128)}`
 
   fs.mkdirSync(dir, { recursive: true })
 
@@ -137,9 +137,9 @@ test('long path', (t) => {
     fs.rmSync(`test/fixtures/${'a'.repeat(128)}`, { recursive: true })
   )
 
-  fs.copyFileSync('test/fixtures/hello.js', file)
+  fs.copyFileSync(os.execPath(), file)
 
-  const subprocess = spawn(os.execPath(), [file])
+  const subprocess = spawn(file, ['-p', '"hello"'])
 
   subprocess.on('exit', () => t.pass('exited'))
 
