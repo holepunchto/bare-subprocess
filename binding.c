@@ -597,6 +597,8 @@ bare_subprocess_spawn_sync(js_env_t *env, js_callback_info_t *info) {
   if (throw < 0) {
     err = js_throw_error(env, uv_err_name(throw), uv_strerror(throw));
     assert(err == 0);
+
+    return NULL;
   }
 
   return pid;
