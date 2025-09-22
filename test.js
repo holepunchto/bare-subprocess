@@ -1,6 +1,7 @@
 const test = require('brittle')
 const fs = require('bare-fs')
 const os = require('bare-os')
+const path = require('bare-path')
 const { spawn, spawnSync } = require('.')
 
 test('basic', (t) => {
@@ -139,7 +140,7 @@ test('long path', (t) => {
 
   fs.copyFileSync(os.execPath(), file)
 
-  const subprocess = spawn(file, ['-p', '"hello"'])
+  const subprocess = spawn(path.toNamespacedPath(file), ['-p', '"hello"'])
 
   subprocess.on('exit', () => t.pass('exited'))
 
