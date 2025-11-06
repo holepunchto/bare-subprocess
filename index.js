@@ -72,6 +72,8 @@ exports.Subprocess = class Subprocess extends EventEmitter {
   }
 }
 
+exports.ChildProcess = exports.Subprocess // For Node.js compatibility
+
 exports.constants = constants
 exports.errors = errors
 
