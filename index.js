@@ -19,14 +19,19 @@ exports.Subprocess = class Subprocess extends EventEmitter {
     this.signalCode = null
     this.killed = false
 
+    this._closing = []
     this._handle = binding.init(this, this._onexit)
   }
 
-  _onexit(code, signal) {
+  async _onexit(code, signal) {
     this.exitCode = code
     this.signalCode = signal
 
     this.emit('exit', code, signal)
+
+    await Promise.all(this._closing)
+
+    this.emit('close', code, signal)
   }
 
   get stdin() {
@@ -167,6 +172,10 @@ exports.spawn = function spawn(file, args, opts) {
       const pipe = new Pipe()
 
       pipe._onspawn(i !== 0 /* Readable */, i === 0 || i > 2 /* Writable */)
+
+      if (i > 0) {
+        subprocess._closing.push(EventEmitter.once(pipe, 'close'))
+      }
 
       let flags =
         binding.UV_CREATE_PIPE |

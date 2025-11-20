@@ -5,11 +5,13 @@ const path = require('bare-path')
 const { spawn, spawnSync } = require('.')
 
 test('basic', (t) => {
-  t.plan(2)
+  t.plan(3)
 
   const subprocess = spawn(os.execPath(), ['test/fixtures/hello.js'])
 
-  subprocess.on('exit', () => t.pass('exited'))
+  subprocess
+    .on('exit', () => t.pass('exited'))
+    .on('close', () => t.pass('closed'))
 
   subprocess.stdout.on('data', (data) =>
     t.alike(data, Buffer.from('hello' + os.EOL))
