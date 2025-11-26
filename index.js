@@ -174,7 +174,9 @@ exports.spawn = function spawn(file, args, opts) {
       pipe._onspawn(i !== 0 /* Readable */, i === 0 || i > 2 /* Writable */)
 
       if (i > 0) {
-        subprocess._closing.push(EventEmitter.once(pipe, 'close'))
+        subprocess._closing.push(
+          new Promise((resolve) => pipe.once('close', resolve))
+        )
       }
 
       let flags =
