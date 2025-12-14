@@ -12,8 +12,9 @@ export interface SubprocessEvents extends EventMap {
 
 export type IO = 'inherit' | 'pipe' | 'overlapped' | 'ignore'
 
-export interface Subprocess<M extends SubprocessEvents = SubprocessEvents>
-  extends EventEmitter<M> {
+export interface Subprocess<
+  M extends SubprocessEvents = SubprocessEvents
+> extends EventEmitter<M> {
   readonly exitCode: number | null
   readonly killed: boolean
   readonly pid: number
