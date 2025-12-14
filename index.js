@@ -23,11 +23,19 @@ exports.Subprocess = class Subprocess extends EventEmitter {
     this._handle = binding.init(this, this._onexit)
   }
 
+  _flush() {
+    for (const pipe of this.stdio) {
+      if (pipe) pipe.resume()
+    }
+  }
+
   async _onexit(code, signal) {
     this.exitCode = code
     this.signalCode = signal
 
     this.emit('exit', code, signal)
+
+    queueMicrotask(this._flush.bind(this)) // Defer to provide a last chance to consume
 
     await Promise.all(this._closing)
 
