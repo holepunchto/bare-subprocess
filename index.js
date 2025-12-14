@@ -25,7 +25,7 @@ exports.Subprocess = class Subprocess extends EventEmitter {
 
   _flush() {
     for (const pipe of this.stdio) {
-      if (pipe) pipe.resume()
+      if (pipe && !Buffer.isBuffer(pipe)) pipe.resume()
     }
   }
 
@@ -56,7 +56,7 @@ exports.Subprocess = class Subprocess extends EventEmitter {
 
   ref() {
     for (const pipe of this.stdio) {
-      if (pipe) pipe.ref()
+      if (pipe && !Buffer.isBuffer(pipe)) pipe.ref()
     }
 
     binding.ref(this._handle)
@@ -64,7 +64,7 @@ exports.Subprocess = class Subprocess extends EventEmitter {
 
   unref() {
     for (const pipe of this.stdio) {
-      if (pipe) pipe.unref()
+      if (pipe && !Buffer.isBuffer(pipe)) pipe.unref()
     }
 
     binding.unref(this._handle)
