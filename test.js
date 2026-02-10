@@ -9,13 +9,9 @@ test('basic', (t) => {
 
   const subprocess = spawn(os.execPath(), ['test/fixtures/hello.js'])
 
-  subprocess
-    .on('exit', () => t.pass('exited'))
-    .on('close', () => t.pass('closed'))
+  subprocess.on('exit', () => t.pass('exited')).on('close', () => t.pass('closed'))
 
-  subprocess.stdout.on('data', (data) =>
-    t.alike(data, Buffer.from('hello' + os.EOL))
-  )
+  subprocess.stdout.on('data', (data) => t.alike(data, Buffer.from('hello' + os.EOL)))
 
   subprocess.stderr.on('data', (err) => t.fail(err.toString()))
 })
@@ -85,9 +81,7 @@ test('env', (t) => {
     env: { KEY: 'VALUE' }
   })
 
-  subprocess.stdout.on('data', (data) =>
-    t.alike(data, Buffer.from('VALUE' + os.EOL))
-  )
+  subprocess.stdout.on('data', (data) => t.alike(data, Buffer.from('VALUE' + os.EOL)))
 })
 
 test('echo', (t) => {
@@ -120,9 +114,7 @@ test('abort', (t) => {
 
   subprocess.on('exit', () => t.pass('exited'))
 
-  subprocess.stdout.on('data', (data) =>
-    t.alike(data, Buffer.from('before abort' + os.EOL))
-  )
+  subprocess.stdout.on('data', (data) => t.alike(data, Buffer.from('before abort' + os.EOL)))
 
   subprocess.stderr.on('data', (err) => t.fail(err.toString()))
 })
@@ -136,9 +128,7 @@ test('long path', { skip: Bare.platform === 'win32' }, (t) => {
 
   fs.mkdirSync(dir, { recursive: true })
 
-  t.teardown(() =>
-    fs.rmSync(`test/fixtures/${'a'.repeat(128)}`, { recursive: true })
-  )
+  t.teardown(() => fs.rmSync(`test/fixtures/${'a'.repeat(128)}`, { recursive: true }))
 
   fs.copyFileSync(os.execPath(), file)
 
@@ -146,9 +136,7 @@ test('long path', { skip: Bare.platform === 'win32' }, (t) => {
 
   subprocess.on('exit', () => t.pass('exited'))
 
-  subprocess.stdout.on('data', (data) =>
-    t.alike(data, Buffer.from('hello' + os.EOL))
-  )
+  subprocess.stdout.on('data', (data) => t.alike(data, Buffer.from('hello' + os.EOL)))
 
   subprocess.stderr.on('data', (err) => t.fail(err.toString()))
 })

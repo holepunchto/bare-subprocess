@@ -182,15 +182,10 @@ exports.spawn = function spawn(file, args, opts) {
       pipe._onspawn(i !== 0 /* Readable */, i === 0 || i > 2 /* Writable */)
 
       if (i > 0) {
-        subprocess._closing.push(
-          new Promise((resolve) => pipe.once('close', resolve))
-        )
+        subprocess._closing.push(new Promise((resolve) => pipe.once('close', resolve)))
       }
 
-      let flags =
-        binding.UV_CREATE_PIPE |
-        binding.UV_READABLE_PIPE |
-        binding.UV_WRITABLE_PIPE
+      let flags = binding.UV_CREATE_PIPE | binding.UV_READABLE_PIPE | binding.UV_WRITABLE_PIPE
 
       if (fd === 'overlapped') flags |= binding.UV_NONBLOCK_PIPE
 
