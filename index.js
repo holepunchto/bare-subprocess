@@ -2,7 +2,7 @@ const EventEmitter = require('bare-events')
 const Pipe = require('bare-pipe')
 const os = require('bare-os')
 const env = require('bare-env')
-const { fileURLToPath } = require('bare-url')
+const { isURL, fileURLToPath } = require('bare-url')
 const binding = require('./binding')
 const constants = require('./lib/constants')
 const errors = require('./lib/errors')
@@ -361,7 +361,7 @@ function defaultEnv() {
 
 function toPath(filepath) {
   if (typeof filepath !== 'string') {
-    if (URL.isURL(filepath)) filepath = fileURLToPath(filepath)
+    if (isURL(filepath)) filepath = fileURLToPath(filepath)
     else filepath = filepath.toString()
   }
 
