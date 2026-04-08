@@ -64,6 +64,7 @@ export function spawnSync(
   status: number
   stderr: Buffer | null
   stdout: Buffer | null
+  error?: Error
 }
 
 export function spawnSync(

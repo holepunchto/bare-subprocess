@@ -329,19 +329,26 @@ exports.spawnSync = function spawn(file, args, opts) {
     }
   }
 
-  subprocess.pid = binding.spawnSync(
-    subprocess._handle,
-    file,
-    args,
-    cwd,
-    pairs,
-    stdio,
-    detached,
-    uid,
-    gid,
-    windowsHide,
-    windowsVerbatimArguments
-  )
+  let error
+  try {
+    subprocess.pid = binding.spawnSync(
+      subprocess._handle,
+      file,
+      args,
+      cwd,
+      pairs,
+      stdio,
+      detached,
+      uid,
+      gid,
+      windowsHide,
+      windowsVerbatimArguments
+    )
+  } catch (err) {
+    error = err
+  }
+
+  if (error) return { status: null, signal: null, output: null, pid: 0, error }
 
   for (let i = 1, n = stdio.length; i < n; i++) {
     if (stdio[i].flags & binding.UV_WRITABLE_PIPE) {

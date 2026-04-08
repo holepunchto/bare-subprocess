@@ -51,7 +51,14 @@ test('sync', (t) => {
 })
 
 test('sync, not found', (t) => {
-  t.exception(() => spawnSync('./this-does-not-exist'))
+  t.plan(4)
+
+  const subprocess = spawnSync('./this-does-not-exist')
+
+  t.absent(subprocess.exitCode)
+  t.absent(subprocess.killed)
+  t.absent(subprocess.signalCode)
+  t.is(subprocess.error.code, 'ENOENT')
 })
 
 test('pipe', (t) => {
