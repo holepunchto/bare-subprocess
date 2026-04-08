@@ -30,16 +30,24 @@ exports.Subprocess = class Subprocess extends EventEmitter {
   }
 
   async _onexit(code, signal) {
-    this.exitCode = code
-    this.signalCode = signal
+    if (signal) {
+      for (const [name, val] of Object.entries(os.constants.signals)) {
+        if (signal === val) {
+          this.signalCode = name
+          break
+        }
+      }
+    } else {
+      this.exitCode = code
+    }
 
-    this.emit('exit', code, signal)
+    this.emit('exit', this.exitCode, this.signalCode)
 
     queueMicrotask(this._flush.bind(this)) // Defer to provide a last chance to consume
 
     await Promise.all(this._closing)
 
-    this.emit('close', code, signal)
+    this.emit('close', this.exitCode, this.signalCode)
   }
 
   get stdin() {
