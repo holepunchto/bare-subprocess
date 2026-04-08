@@ -7,7 +7,7 @@ import errors from './lib/errors'
 export { constants, errors }
 
 export interface SubprocessEvents extends EventMap {
-  exit: [code: number, signalCode: string]
+  exit: [code: number | null, signalCode: string | null]
 }
 
 export type IO = 'inherit' | 'pipe' | 'overlapped' | 'ignore'
