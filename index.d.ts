@@ -54,7 +54,7 @@ export interface SpawnSyncOptions extends SpawnOptions {
 }
 
 export interface SpawnSyncResult {
-  output: (Buffer | null)[]
+  output: (Buffer | null)[] | null
   pid: number
   signal: number
   status: number
