@@ -7,7 +7,7 @@ import errors from './lib/errors'
 export { constants, errors }
 
 export interface SubprocessEvents extends EventMap {
-  exit: [code: number, signalCode: string]
+  exit: [code: number | null, signalCode: string | null]
 }
 
 export type IO = 'inherit' | 'pipe' | 'overlapped' | 'ignore'
@@ -53,27 +53,20 @@ export interface SpawnSyncOptions extends SpawnOptions {
   maxBuffer?: number
 }
 
-export function spawnSync(
-  file: string,
-  args?: string[] | null,
-  opts?: SpawnSyncOptions
-): {
+export interface SpawnSyncResult {
   output: (Buffer | null)[]
   pid: number
   signal: number
   status: number
-  stderr: Buffer | null
   stdout: Buffer | null
+  stderr: Buffer | null
+  error?: Error
 }
 
 export function spawnSync(
   file: string,
+  args?: string[] | null,
   opts?: SpawnSyncOptions
-): {
-  output: (Buffer | null)[]
-  pid: number
-  signal: number
-  status: number
-  stderr: Buffer | null
-  stdout: Buffer | null
-}
+): SpawnSyncResult
+
+export function spawnSync(file: string, opts?: SpawnSyncOptions): SpawnSyncResult

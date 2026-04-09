@@ -5,11 +5,19 @@ const path = require('bare-path')
 const { spawn, spawnSync } = require('.')
 
 test('basic', (t) => {
-  t.plan(3)
+  t.plan(6)
 
   const subprocess = spawn(os.execPath(), ['test/fixtures/hello.js'])
 
-  subprocess.on('exit', () => t.pass('exited')).on('close', () => t.pass('closed'))
+  subprocess
+    .on('exit', () => t.pass('exited'))
+    .on('close', () => {
+      t.is(subprocess.exitCode, 0)
+      t.is(subprocess.killed, false)
+      t.is(subprocess.signalCode, null)
+
+      t.pass('closed')
+    })
 
   subprocess.stdout.on('data', (data) => t.alike(data, Buffer.from('hello' + os.EOL)))
 
@@ -17,24 +25,40 @@ test('basic', (t) => {
 })
 
 test('kill', (t) => {
-  t.plan(1)
+  t.plan(4)
 
   const subprocess = spawn(os.execPath(), ['test/fixtures/spin.js'])
 
-  subprocess.on('exit', () => t.pass('exited')).kill()
+  subprocess
+    .on('exit', () => {
+      t.is(subprocess.exitCode, null)
+      t.is(subprocess.killed, true)
+      t.is(subprocess.signalCode, 'SIGTERM')
+
+      t.pass('exited')
+    })
+    .kill()
 })
 
 test('sync', (t) => {
-  t.plan(2)
+  t.plan(3)
 
   const subprocess = spawnSync(os.execPath(), ['test/fixtures/hello.js'])
 
+  t.is(subprocess.signal, null)
   t.is(subprocess.status, 0)
   t.alike(subprocess.stdout, Buffer.from('hello' + os.EOL))
 })
 
 test('sync, not found', (t) => {
-  t.exception(() => spawnSync('./this-does-not-exist'))
+  t.plan(4)
+
+  const subprocess = spawnSync('./this-does-not-exist')
+
+  t.absent(subprocess.exitCode)
+  t.absent(subprocess.killed)
+  t.absent(subprocess.signalCode)
+  t.is(subprocess.error.code, 'ENOENT')
 })
 
 test('pipe', (t) => {
@@ -64,22 +88,18 @@ test('overlapped', (t) => {
 test('ignore', (t) => {
   t.plan(2)
 
-  const subprocess = spawn(os.execPath(), ['test/fixtures/fs.js'], {
-    stdio: 'ignore'
-  })
+  const subprocess = spawn(os.execPath(), ['test/fixtures/fs.js'], { stdio: 'ignore' })
 
   subprocess.on('exit', (code, signal) => {
     t.is(code, 0)
-    t.is(signal, 0)
+    t.is(signal, null)
   })
 })
 
 test('env', (t) => {
   t.plan(1)
 
-  const subprocess = spawn(os.execPath(), ['test/fixtures/env.js'], {
-    env: { KEY: 'VALUE' }
-  })
+  const subprocess = spawn(os.execPath(), ['test/fixtures/env.js'], { env: { KEY: 'VALUE' } })
 
   subprocess.stdout.on('data', (data) => t.alike(data, Buffer.from('VALUE' + os.EOL)))
 })

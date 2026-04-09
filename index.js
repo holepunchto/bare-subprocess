@@ -30,16 +30,24 @@ exports.Subprocess = class Subprocess extends EventEmitter {
   }
 
   async _onexit(code, signal) {
-    this.exitCode = code
-    this.signalCode = signal
+    if (signal) {
+      for (const [name, val] of Object.entries(os.constants.signals)) {
+        if (signal === val) {
+          this.signalCode = name
+          break
+        }
+      }
+    } else {
+      this.exitCode = code
+    }
 
-    this.emit('exit', code, signal)
+    this.emit('exit', this.exitCode, this.signalCode)
 
     queueMicrotask(this._flush.bind(this)) // Defer to provide a last chance to consume
 
     await Promise.all(this._closing)
 
-    this.emit('close', code, signal)
+    this.emit('close', this.exitCode, this.signalCode)
   }
 
   get stdin() {
@@ -321,19 +329,26 @@ exports.spawnSync = function spawn(file, args, opts) {
     }
   }
 
-  subprocess.pid = binding.spawnSync(
-    subprocess._handle,
-    file,
-    args,
-    cwd,
-    pairs,
-    stdio,
-    detached,
-    uid,
-    gid,
-    windowsHide,
-    windowsVerbatimArguments
-  )
+  let error
+  try {
+    subprocess.pid = binding.spawnSync(
+      subprocess._handle,
+      file,
+      args,
+      cwd,
+      pairs,
+      stdio,
+      detached,
+      uid,
+      gid,
+      windowsHide,
+      windowsVerbatimArguments
+    )
+  } catch (err) {
+    error = err
+  }
+
+  if (error) return { status: null, signal: null, output: null, pid: 0, error }
 
   for (let i = 1, n = stdio.length; i < n; i++) {
     if (stdio[i].flags & binding.UV_WRITABLE_PIPE) {
