@@ -1,6 +1,6 @@
 {
   "name": "bare-subprocess",
-  "version": "5.2.3",
+  "version": "6.0.0",
   "description": "Native process spawning for JavaScript",
   "exports": {
     ".": {
