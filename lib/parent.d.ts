@@ -3,6 +3,7 @@ import EventEmitter, { EventMap } from 'bare-events'
 interface SubprocessParentChannelEvents extends EventMap {
   message: [message: unknown, handle: unknown]
   disconnect: []
+  error: [err: Error]
 }
 
 interface SubprocessParentChannel<

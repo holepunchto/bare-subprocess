@@ -242,6 +242,20 @@ test('ipc, binary serialization', (t) => {
   pipe.write(Buffer.from('hello'))
 })
 
+test('ipc, malformed message', (t) => {
+  t.plan(2)
+
+  const subprocess = spawn(os.execPath(), ['test/fixtures/ipc-garbage.js'], {
+    stdio: ['inherit', 'inherit', 'inherit', 'ipc']
+  })
+
+  subprocess.on('error', (err) => {
+    t.is(err.code, 'INVALID_MESSAGE')
+    t.ok(err.cause instanceof Error)
+    subprocess.kill()
+  })
+})
+
 test('ipc, send handle', async (t) => {
   t.plan(1)
 

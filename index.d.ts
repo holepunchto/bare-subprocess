@@ -11,6 +11,7 @@ export interface SubprocessEvents extends EventMap {
   exit: [code: number | null, signalCode: string | null]
   message: [message: unknown, handle: unknown]
   disconnect: []
+  error: [err: Error]
 }
 
 export type IO = 'inherit' | 'pipe' | 'overlapped' | 'ignore' | 'ipc'
