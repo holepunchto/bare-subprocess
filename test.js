@@ -312,9 +312,9 @@ test('ipc, send multiple handles interleaved with plain messages', async (t) => 
 
     sock.on('data', (data) => {
       buffer = Buffer.concat([buffer, data])
-    })
 
-    sock.on('end', () => {
+      if (buffer.length < 5) return
+
       const label = buffer.toString('utf8', 4, 5)
       received[label] = buffer
       sock.destroy()
