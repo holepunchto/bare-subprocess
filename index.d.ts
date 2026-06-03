@@ -5,7 +5,7 @@ import SubprocessChannel from './lib/channel'
 import constants from './lib/constants'
 import errors from './lib/errors'
 
-export { constants, errors, SubprocessChannel }
+export { constants, errors, type SubprocessChannel }
 
 export interface SubprocessEvents extends EventMap {
   exit: [code: number | null, signalCode: string | null]
