@@ -282,6 +282,72 @@ test('ipc, send handle', async (t) => {
   })
 })
 
+test('ipc, send multiple handles interleaved with plain messages', async (t) => {
+  t.plan(3)
+
+  let subprocess, peerA, peerB
+
+  const server = tcp.createServer()
+
+  const received = { A: Buffer.alloc(0), B: Buffer.alloc(0) }
+  let closedSockets = 0
+  let plainReceived = false
+
+  server.on('connection', (sock) => {
+    sock.on('data', (data) => {
+      const label = data.toString('utf8', 4, 5)
+      received[label] = Buffer.concat([received[label], data])
+    })
+
+    sock.on('end', () => {
+      sock.destroy()
+      closedSockets++
+      if (closedSockets === 2 && plainReceived) finish()
+    })
+  })
+
+  server.listen()
+  await new Promise((resolve) => server.on('listening', resolve))
+  const { port } = server.address()
+
+  subprocess = spawn(os.execPath(), ['test/fixtures/ipc-handles.js'], {
+    stdio: ['inherit', 'inherit', 'inherit', 'ipc']
+  })
+
+  subprocess.on('message', (message, handle) => {
+    if (message.plain && message.plain.note === 'no-handle') {
+      plainReceived = true
+      if (closedSockets === 2) finish()
+    }
+  })
+
+  let connected = 0
+  peerA = tcp.createConnection(port)
+  peerB = tcp.createConnection(port)
+
+  const onConnect = () => {
+    if (++connected < 2) return
+
+    subprocess.send({ id: 'A' }, peerA)
+    subprocess.send({ note: 'no-handle' })
+    subprocess.send({ id: 'B' }, peerB)
+  }
+
+  peerA.on('connect', onConnect)
+  peerB.on('connect', onConnect)
+
+  function finish() {
+    t.alike(received.A, Buffer.from('got:A'), 'first handle received message A')
+    t.alike(received.B, Buffer.from('got:B'), 'second handle received message B')
+    t.pass('plain message routed correctly')
+
+    peerA.destroy()
+    peerB.destroy()
+    server.close()
+    subprocess.kill()
+  }
+})
+
 test('unref', (t) => {
   t.plan(1)
 
