@@ -308,12 +308,15 @@ test('ipc, send multiple handles interleaved with plain messages', async (t) => 
   let plainReceived = false
 
   server.on('connection', (sock) => {
+    let buffer = Buffer.alloc(0)
+
     sock.on('data', (data) => {
-      const label = data.toString('utf8', 4, 5)
-      received[label] = Buffer.concat([received[label], data])
+      buffer = Buffer.concat([buffer, data])
     })
 
     sock.on('end', () => {
+      const label = buffer.toString('utf8', 4, 5)
+      received[label] = buffer
       sock.destroy()
       closedSockets++
       if (closedSockets === 2 && plainReceived) finish()
