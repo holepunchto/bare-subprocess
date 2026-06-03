@@ -73,7 +73,7 @@ exports.Subprocess = class Subprocess extends EventEmitter {
     this.killed = true
   }
 
-  send(message, handle, cb) {
+  send(message, handle = null, cb) {
     if (typeof handle === 'function') {
       cb = handle
       handle = null
