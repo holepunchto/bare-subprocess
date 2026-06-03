@@ -1,16 +1,19 @@
 import EventEmitter, { EventMap } from 'bare-events'
 import Buffer from 'bare-buffer'
 import Pipe from 'bare-pipe'
+import SubprocessChannel from './lib/channel'
 import constants from './lib/constants'
 import errors from './lib/errors'
 
-export { constants, errors }
+export { constants, errors, SubprocessChannel }
 
 export interface SubprocessEvents extends EventMap {
   exit: [code: number | null, signalCode: string | null]
+  message: [message: unknown, handle: unknown]
+  disconnect: []
 }
 
-export type IO = 'inherit' | 'pipe' | 'overlapped' | 'ignore'
+export type IO = 'inherit' | 'pipe' | 'overlapped' | 'ignore' | 'ipc'
 
 export interface Subprocess<M extends SubprocessEvents = SubprocessEvents> extends EventEmitter<M> {
   readonly exitCode: number | null
@@ -23,14 +26,23 @@ export interface Subprocess<M extends SubprocessEvents = SubprocessEvents> exten
   readonly stdin: Pipe | null
   readonly stdout: Pipe | null
   readonly stderr: Pipe | null
+  readonly channel?: SubprocessChannel
+  readonly connected: boolean
 
   ref(): void
   unref(): void
 
   kill(signum?: number): void
+
+  send(message: unknown, handle?: unknown, cb?: (err: Error | null) => void): boolean
+  send(message: unknown, cb: (err: Error | null) => void): boolean
+
+  disconnect(): void
 }
 
 export class Subprocess {}
+
+export type SerializationMode = 'json' | 'advanced' | 'binary'
 
 export interface SpawnOptions {
   cwd?: string
@@ -42,6 +54,7 @@ export interface SpawnOptions {
   env?: Record<string, string>
   windowsHide?: boolean
   windowsVerbatimArguments?: boolean
+  serialization?: SerializationMode
 }
 
 export function spawn(file: string, args?: string[] | null, opts?: SpawnOptions): Subprocess

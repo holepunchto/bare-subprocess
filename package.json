@@ -15,6 +15,10 @@
     "./errors": {
       "types": "./lib/errors.d.ts",
       "default": "./lib/errors.js"
+    },
+    "./parent": {
+      "types": "./lib/parent.d.ts",
+      "default": "./lib/parent.js"
     }
   },
   "files": [
@@ -50,6 +54,7 @@
     "bare-events": "^2.5.4",
     "bare-os": "^3.0.1",
     "bare-pipe": "^4.0.0",
+    "bare-structured-clone": "^1.5.2",
     "bare-url": "^2.2.2"
   },
   "devDependencies": {
