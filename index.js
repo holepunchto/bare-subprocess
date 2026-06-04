@@ -4,6 +4,9 @@ const os = require('bare-os')
 const env = require('bare-env')
 const { isURL, fileURLToPath } = require('bare-url')
 const binding = require('./binding')
+const Channel = require('./lib/channel')
+const JSONFramer = require('./lib/framers/json')
+const AdvancedFramer = require('./lib/framers/advanced')
 const constants = require('./lib/constants')
 const errors = require('./lib/errors')
 
@@ -18,36 +21,14 @@ exports.Subprocess = class Subprocess extends EventEmitter {
     this.exitCode = null
     this.signalCode = null
     this.killed = false
+    this.channel = undefined
 
     this._closing = []
     this._handle = binding.init(this, this._onexit)
   }
 
-  _flush() {
-    for (const pipe of this.stdio) {
-      if (pipe && typeof pipe.resume === 'function') pipe.resume()
-    }
-  }
-
-  async _onexit(code, signal) {
-    if (signal) {
-      for (const [name, val] of Object.entries(os.constants.signals)) {
-        if (signal === val) {
-          this.signalCode = name
-          break
-        }
-      }
-    } else {
-      this.exitCode = code
-    }
-
-    this.emit('exit', this.exitCode, this.signalCode)
-
-    queueMicrotask(this._flush.bind(this)) // Defer to provide a last chance to consume
-
-    await Promise.all(this._closing)
-
-    this.emit('close', this.exitCode, this.signalCode)
+  get connected() {
+    return this.channel !== undefined
   }
 
   get stdin() {
@@ -91,6 +72,53 @@ exports.Subprocess = class Subprocess extends EventEmitter {
 
     this.killed = true
   }
+
+  send(message, handle = null, cb) {
+    if (typeof handle === 'function') {
+      cb = handle
+      handle = null
+    }
+
+    if (this.channel === undefined) {
+      const err = errors.NO_IPC_CHANNEL('Subprocess has no IPC channel')
+      if (cb) queueMicrotask(() => cb(err))
+      return false
+    }
+
+    return this.channel.send(message, handle, cb)
+  }
+
+  disconnect() {
+    if (this.channel === undefined) return
+    this.channel.disconnect()
+  }
+
+  _flush() {
+    for (const pipe of this.stdio) {
+      if (pipe && typeof pipe.resume === 'function') pipe.resume()
+    }
+  }
+
+  async _onexit(code, signal) {
+    if (signal) {
+      for (const [name, val] of Object.entries(os.constants.signals)) {
+        if (signal === val) {
+          this.signalCode = name
+          break
+        }
+      }
+    } else {
+      this.exitCode = code
+    }
+
+    this.emit('exit', this.exitCode, this.signalCode)
+
+    queueMicrotask(this._flush.bind(this)) // Defer to provide a last chance to consume
+
+    await Promise.all(this._closing)
+
+    this.emit('close', this.exitCode, this.signalCode)
+  }
 }
 
 exports.ChildProcess = exports.Subprocess // For Node.js compatibility
@@ -121,8 +149,13 @@ exports.spawn = function spawn(file, args, opts) {
     uid = -1,
     gid = -1,
     windowsHide = false,
-    windowsVerbatimArguments = false
+    windowsVerbatimArguments = false,
+    serialization = 'json'
   } = opts
+
+  if (serialization !== 'json' && serialization !== 'advanced' && serialization !== 'binary') {
+    throw errors.UNKNOWN_SERIALIZATION_MODE(`Unknown serialization mode '${serialization}'`)
+  }
 
   file = toPath(file)
   cwd = toPath(cwd)
@@ -175,6 +208,8 @@ exports.spawn = function spawn(file, args, opts) {
   subprocess.spawnfile = file
   subprocess.spawnargs = args
 
+  let ipcSlot = -1
+
   for (let i = 0, n = Math.max(3, stdio.length); i < n; i++) {
     subprocess.stdio[i] = null
 
@@ -200,9 +235,31 @@ exports.spawn = function spawn(file, args, opts) {
       stdio[i] = { flags, pipe: pipe._handle }
 
       subprocess.stdio[i] = pipe
+    } else if (fd === 'ipc') {
+      if (ipcSlot !== -1) {
+        throw errors.IPC_CHANNEL_ALREADY_DEFINED('Only one IPC channel per subprocess')
+      }
+
+      ipcSlot = i
+
+      const pipe = new Pipe({ ipc: true })
+
+      pipe._onspawn(true, true)
+
+      subprocess._closing.push(new Promise((resolve) => pipe.once('close', resolve)))
+
+      const flags = binding.UV_CREATE_PIPE | binding.UV_READABLE_PIPE | binding.UV_WRITABLE_PIPE
+
+      stdio[i] = { flags, pipe: pipe._handle }
+
+      subprocess.stdio[i] = pipe
     } else {
       stdio[i] = { flags: binding.UV_INHERIT_FD, fd }
     }
+  }
+
+  if (ipcSlot !== -1) {
+    pairs.push(`BARE_CHANNEL_FD=${ipcSlot}`, `BARE_CHANNEL_SERIALIZATION_MODE=${serialization}`)
   }
 
   subprocess.pid = binding.spawn(
@@ -218,6 +275,22 @@ exports.spawn = function spawn(file, args, opts) {
     windowsHide,
     windowsVerbatimArguments
   )
+
+  if (ipcSlot !== -1 && serialization !== 'binary') {
+    let framer
+
+    if (serialization === 'json') {
+      framer = new JSONFramer()
+    } else if (serialization === 'advanced') {
+      framer = new AdvancedFramer()
+    }
+
+    subprocess.channel = new Channel(subprocess, subprocess.stdio[ipcSlot], framer)
+
+    subprocess.once('disconnect', () => {
+      subprocess.channel = undefined
+    })
+  }
 
   return subprocess
 }
