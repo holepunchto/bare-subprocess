@@ -18,217 +18,315 @@ const subprocess = spawn('echo', ['hello', 'world'], {
 subprocess.on('exit', () => console.log('done'))
 ```
 
+<!-- bare-refgen:api start -->
+
 ## API
 
-#### `const subprocess = spawn(file[, args][, options])`
+### Subprocess
 
-Spawn `file` as a new subprocess with the given `args`. Returns a `Subprocess` instance. `args` may be `null` or omitted to spawn with no arguments. If `args` is omitted, the second argument is treated as `options`.
-
-Options include:
-
-```js
-options = {
-  cwd: os.cwd(),
-  env: process.env,
-  stdio: [],
-  shell: false,
-  detached: false,
-  uid: -1,
-  gid: -1,
-  windowsHide: false,
-  windowsVerbatimArguments: false,
-  serialization: 'json'
-}
-```
-
-`stdio` may be an array of slot descriptors or a single string applied to all of `stdin`, `stdout`, and `stderr`. Each slot may be one of:
-
-| Value          | Description                                                                          |
-| -------------- | ------------------------------------------------------------------------------------ |
-| `'pipe'`       | Open a pipe between parent and child.                                                |
-| `'overlapped'` | Like `'pipe'` but opens the pipe in overlapped mode on Windows.                      |
-| `'inherit'`    | Inherit the parent's corresponding file descriptor (or `'ignore'` for fds beyond 2). |
-| `'ignore'`     | Do not open the file descriptor in the child.                                        |
-| `'ipc'`        | Open an IPC channel between parent and child. At most one slot may use this.         |
-
-`serialization` selects how IPC messages are framed:
-
-| Mode         | Description                                                                                           |
-| ------------ | ----------------------------------------------------------------------------------------------------- |
-| `'json'`     | Newline-delimited JSON. Only JSON-serializable values are supported. Default.                         |
-| `'advanced'` | Length-prefixed structured clone, via `bare-structured-clone`. Supports `Date`, `Map`, `Buffer`, etc. |
-| `'binary'`   | Raw pipe with no framing. `subprocess.channel` is `undefined`; use `subprocess.stdio[fd]` directly.   |
-
-`shell` may be a string identifying the shell to use, or `true` to use the platform default (`/bin/sh`, `/system/bin/sh` on Android, or `cmd.exe` on Windows).
-
-#### `const result = spawnSync(file[, args][, options])`
-
-Synchronously spawn `file` and wait for it to exit. Returns an object:
-
-```js
-result = {
-  pid,
-  status,
-  signal,
-  output,
-  stdout,
-  stderr,
-  error
-}
-```
-
-Accepts all `spawn` options plus:
-
-```js
-options = {
-  input: null,
-  maxBuffer: 1024 * 1024
-}
-```
-
-`input` is written to the child's `stdin` before it starts. `maxBuffer` is the size of the buffer allocated to capture each `'pipe'` stdio slot.
-
-### `class Subprocess`
-
-The handle returned by `spawn`. Extends `EventEmitter`.
-
-#### `subprocess.pid`
-
-The process ID of the child.
-
-#### `subprocess.spawnfile`
-
-The file that was spawned.
-
-#### `subprocess.spawnargs`
-
-The arguments the child was spawned with.
-
-#### `subprocess.stdio`
-
-An array of `bare-pipe` instances corresponding to the configured stdio slots. Slots configured as `'inherit'`, `'ignore'`, or backed by an inherited fd are `null`.
-
-#### `subprocess.stdin`
-
-Convenience accessor for `subprocess.stdio[0]`.
-
-#### `subprocess.stdout`
-
-Convenience accessor for `subprocess.stdio[1]`.
-
-#### `subprocess.stderr`
-
-Convenience accessor for `subprocess.stdio[2]`.
-
-#### `subprocess.exitCode`
-
-The exit code of the child, or `null` if the child has not exited or was terminated by a signal.
-
-#### `subprocess.signalCode`
-
-The name of the signal the child was terminated with, or `null`.
-
-#### `subprocess.killed`
-
-`true` if `subprocess.kill()` has been called, otherwise `false`.
-
-#### `subprocess.connected`
-
-`true` while an IPC channel exists between parent and child.
-
-#### `subprocess.channel`
+#### `channel: SubprocessChannel`
 
 The `SubprocessChannel` instance backing the IPC channel, or `undefined` when no channel exists. For `serialization: 'binary'`, this is always `undefined`.
 
-#### `subprocess.ref()`
+#### `Subprocess.connected: boolean`
 
-#### `subprocess.unref()`
+`true` while an IPC channel exists between parent and child.
 
-Reference or unreference the subprocess and its stdio pipes against the event loop.
-
-#### `subprocess.kill([signum])`
-
-Send a signal to the child. `signum` may be a signal number or a name (e.g. `'SIGTERM'`). Defaults to `SIGTERM`.
-
-#### `subprocess.send(message[, handle][, callback])`
-
-Send `message` to the child over the IPC channel. `handle` may be a `bare-pipe` `Pipe` or a `bare-tcp` `Socket` to transfer ownership of along with the message. `callback` is invoked with `(err)` after the message has been written.
-
-Returns `true` if the message was queued for transmission, or `false` if no IPC channel exists or the channel has been disconnected. Throws synchronously if the message cannot be serialized or exceeds the maximum frame size.
-
-#### `subprocess.disconnect()`
+#### `Subprocess.disconnect(): void`
 
 Close the IPC channel. A `'disconnect'` event is emitted once the channel is fully closed.
 
-#### `event: 'exit'`
+#### `exitCode: number | null`
 
-Emitted with `(exitCode, signalCode)` when the child exits.
+The exit code of the child, or `null` if the child has not exited or was terminated by a signal.
 
-#### `event: 'close'`
+#### `kill(signum?: number): void`
 
-Emitted with `(exitCode, signalCode)` when the child has exited and all stdio pipes have closed.
+Send a signal to the child. `signum` may be a signal number or a name (for example `'SIGTERM'`). Defaults to `SIGTERM`.
 
-#### `event: 'message'`
+**Parameters**
 
-Emitted with `(message, handle)` when a message is received over the IPC channel. `handle` is the transferred `Pipe` or `Socket`, or `null` if none was sent.
+| Parameter | Type     | Default | Description                                                                                  |
+| --------- | -------- | ------- | -------------------------------------------------------------------------------------------- |
+| `signum?` | `number` | —       | Signal to send, as a signal number or name (for example `'SIGTERM'`); defaults to `SIGTERM`. |
 
-#### `event: 'disconnect'`
+**Throws**
 
-Emitted when the IPC channel has been fully closed.
+- `UNKNOWN_SIGNAL` — thrown if `signum` is a string that isn't a recognized signal name.
 
-#### `event: 'error'`
+#### `killed: boolean`
 
-Emitted when an error occurs on the IPC channel, such as a malformed message or a pipe-level failure. The error has a `code` property; for parse errors the code is `'INVALID_MESSAGE'` and the original error is available on `err.cause`.
+`true` if `subprocess.kill()` has been called, otherwise `false`.
 
-### `class SubprocessParentChannel`
+#### `pid: number`
 
-Available as `require('bare-subprocess/parent')`. Constructed by the child process to access the parent end of the IPC channel. The serialization mode is selected automatically from the `BARE_CHANNEL_SERIALIZATION_MODE` environment variable, which is set by `spawn` in the parent.
+The process ID of the child.
 
-```js
-const ParentChannel = require('bare-subprocess/parent')
+#### `ref(): void`
 
-const parent = new ParentChannel()
+Reference the subprocess and its stdio pipes against the event loop.
 
-parent.on('message', (message, handle) => {
-  parent.send({ echoed: message })
-})
+#### `Subprocess.send(message: unknown, handle?: unknown, cb?: (err: Error | null) => void): boolean`
+
+Send `message` to the child over the IPC channel. `handle` may be a `bare-pipe` `Pipe` or a `bare-tcp` `Socket` to transfer ownership of along with the message. `callback` is invoked with `(err)` after the message has been written.
+
+Overloads:
+
+```ts
+send(message: unknown, handle?: unknown, cb?: (err: Error | null) => void): boolean
+send(message: unknown, cb: (err: Error | null) => void): boolean
 ```
 
-#### `parent.connected`
+**Parameters**
 
-`true` while the channel is open.
+| Parameter | Type                           | Default | Description                                                                                                 |
+| --------- | ------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------- |
+| `message` | `unknown`                      | —       | The value to send to the child over the IPC channel.                                                        |
+| `handle?` | `unknown`                      | —       | A `bare-pipe` `Pipe` or `bare-tcp` `Socket` to transfer to the child along with `message`.                  |
+| `cb?`     | `(err: Error \| null) => void` | —       | Called with `(err)` once `message` has been written, or with an error if there is no connected IPC channel. |
 
-#### `parent.send(message[, handle][, callback])`
+**Returns** `boolean` — `false` if the subprocess has no IPC channel or it has disconnected (`cb`, if given, is then invoked asynchronously with an error); otherwise the underlying pipe write result.
 
-Same semantics as the corresponding `Subprocess` method.
+#### `signalCode: string | null`
 
-#### `parent.disconnect()`
+The name of the signal the child was terminated with, or `null`.
 
-Same semantics as the corresponding `Subprocess` method.
+#### `spawnargs: string[]`
 
-#### `parent.ref()`
+The arguments the child was spawned with.
 
-Same semantics as the corresponding `Subprocess` method.
+#### `spawnfile: string`
 
-#### `parent.unref()`
+The file that was spawned.
 
-Same semantics as the corresponding `Subprocess` method.
+#### `stderr: Pipe | null`
 
-#### `event: 'message'`
+Convenience accessor for `subprocess.stdio[2]`.
 
-Same semantics as the corresponding `Subprocess` event.
+#### `stdin: Pipe | null`
 
-#### `event: 'disconnect'`
+Convenience accessor for `subprocess.stdio[0]`.
 
-Same semantics as the corresponding `Subprocess` event.
+#### `stdio: (Pipe | null)[]`
 
-#### `event: 'error'`
+An array of `bare-pipe` instances corresponding to the configured stdio slots. Slots configured as `'inherit'`, `'ignore'`, or backed by an inherited fd are `null`.
 
-Same semantics as the corresponding `Subprocess` event.
+#### `stdout: Pipe | null`
 
-### `constants`
+Convenience accessor for `subprocess.stdio[1]`.
 
-Re-exports the signal constants from `bare-os` (i.e. `os.constants.signals`). Also available as `require('bare-subprocess/constants')`.
+#### `unref(): void`
+
+Unreference the subprocess and its stdio pipes against the event loop.
+
+### Functions
+
+#### `spawn(file: string, args?: string[] | null, opts?: SpawnOptions): Subprocess`
+
+Spawn `file` as a new subprocess with the given `args`. Returns a `Subprocess` instance. `args` may be `null` or omitted to spawn with no arguments. If `args` is omitted, the second argument is treated as `options`.
+
+Overloads:
+
+```ts
+spawn(file: string, args?: string[] | null, opts?: SpawnOptions): Subprocess
+spawn(file: string, opts?: SpawnOptions): Subprocess
+```
+
+Synchronous form: `spawnSync(file: string, args?: string[] | null, opts?: SpawnSyncOptions): SpawnSyncResult`
+
+**Parameters**
+
+| Parameter | Type               | Default | Description                                                                                                                     |
+| --------- | ------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `file`    | `string`           | —       | The executable to spawn; a string path or a `file://` URL.                                                                      |
+| `args?`   | `string[] \| null` | —       | Arguments to pass to `file`; may be `null` or omitted to spawn with none. If omitted, the second argument is treated as `opts`. |
+| `opts?`   | `SpawnOptions`     | —       | Options controlling the environment, stdio, and behavior of the new subprocess; see `SpawnOptions`.                             |
+
+**Throws**
+
+- `UNKNOWN_SERIALIZATION_MODE` — thrown if `opts.serialization` is not `'json'`, `'advanced'`, or `'binary'`.
+- `IPC_CHANNEL_ALREADY_DEFINED` — thrown if `opts.stdio` requests more than one `'ipc'` slot.
+
+### Constants and variables
+
+#### `constants: Record<string, number>`
+
+### Types
+
+#### `SubprocessChannel`
+
+```ts
+interface SubprocessChannel {
+  readonly connected: boolean
+  send(message: unknown, handle?: unknown, cb?: (err: Error | null) => void): boolean
+  disconnect(): void
+  ref(): this
+  unref(): this
+}
+```
+
+#### `SubprocessEvents`
+
+```ts
+interface SubprocessEvents {
+  exit: [code: number | null, signalCode: string | null]
+  message: [message: unknown, handle: unknown]
+  disconnect: []
+  error: [err: Error]
+}
+```
+
+#### `IO`
+
+```ts
+type IO = 'inherit' | 'pipe' | 'overlapped' | 'ignore' | 'ipc'
+```
+
+#### `SerializationMode`
+
+```ts
+type SerializationMode = 'json' | 'advanced' | 'binary'
+```
+
+#### `SpawnOptions`
+
+```ts
+interface SpawnOptions {
+  cwd?: string
+  stdio?: [stdin?: IO, stdout?: IO, stderr?: IO, ...fds: IO[]] | IO | null
+  shell?: boolean | string
+  detached?: boolean
+  uid?: number
+  gid?: number
+  env?: Record<string, string>
+  windowsHide?: boolean
+  windowsVerbatimArguments?: boolean
+  serialization?: SerializationMode
+}
+```
+
+#### `SpawnSyncOptions`
+
+```ts
+interface SpawnSyncOptions {
+  input?: string | Buffer
+  maxBuffer?: number
+  cwd?: string
+  stdio?: [stdin?: IO, stdout?: IO, stderr?: IO, ...fds: IO[]] | IO | null
+  shell?: boolean | string
+  detached?: boolean
+  uid?: number
+  gid?: number
+  env?: Record<string, string>
+  windowsHide?: boolean
+  windowsVerbatimArguments?: boolean
+  serialization?: SerializationMode
+}
+```
+
+#### `SpawnSyncResult`
+
+```ts
+interface SpawnSyncResult {
+  output: (Buffer | null)[] | null
+  pid: number
+  signal: number
+  status: number
+  stdout: Buffer | null
+  stderr: Buffer | null
+  error?: Error
+}
+```
+
+### Classes
+
+#### `errors`
+
+```ts
+class errors {
+  code: string
+}
+```
+
+## `bare-subprocess/constants`
+
+### Constants and variables
+
+#### `signals: Record<string, number>`
+
+## `bare-subprocess/errors`
+
+### Classes
+
+#### `SubprocessError`
+
+```ts
+class SubprocessError {
+  code: string
+}
+```
+
+## `bare-subprocess/parent`
+
+### SubprocessParentChannel
+
+#### `new SubprocessParentChannel()`
+
+**Throws**
+
+- `NO_IPC_CHANNEL` — thrown if the `BARE_CHANNEL_FD` environment variable is not set.
+- `UNKNOWN_SERIALIZATION_MODE` — thrown if `BARE_CHANNEL_SERIALIZATION_MODE` is set to something other than `'json'` or `'advanced'`.
+
+#### `SubprocessParentChannel.connected: boolean`
+
+`true` while an IPC channel exists between parent and child.
+
+#### `SubprocessParentChannel.disconnect(): void`
+
+Close the IPC channel. A `'disconnect'` event is emitted once the channel is fully closed.
+
+#### `ref(): this`
+
+Reference the subprocess and its stdio pipes against the event loop.
+
+#### `SubprocessParentChannel.send(message: unknown, handle?: unknown, cb?: (err: Error | null) => void): boolean`
+
+Send `message` to the child over the IPC channel. `handle` may be a `bare-pipe` `Pipe` or a `bare-tcp` `Socket` to transfer ownership of along with the message. `callback` is invoked with `(err)` after the message has been written.
+
+Overloads:
+
+```ts
+send(message: unknown, handle?: unknown, cb?: (err: Error | null) => void): boolean
+send(message: unknown, cb: (err: Error | null) => void): boolean
+```
+
+**Parameters**
+
+| Parameter | Type                           | Default | Description                                                                                           |
+| --------- | ------------------------------ | ------- | ----------------------------------------------------------------------------------------------------- |
+| `message` | `unknown`                      | —       | The value to send to the parent process over the IPC channel.                                         |
+| `handle?` | `unknown`                      | —       | A `bare-pipe` `Pipe` or `bare-tcp` `Socket` to transfer to the parent along with `message`.           |
+| `cb?`     | `(err: Error \| null) => void` | —       | Called with `(err)` once `message` has been written, or with an error if the channel is disconnected. |
+
+**Returns** `boolean` — `false` if the channel is disconnected (`cb`, if given, is then invoked asynchronously with a `CHANNEL_DISCONNECTED` error); otherwise the underlying pipe write result.
+
+#### `unref(): this`
+
+Unreference the subprocess and its stdio pipes against the event loop.
+
+### Types
+
+#### `SubprocessParentChannelEvents`
+
+```ts
+interface SubprocessParentChannelEvents {
+  message: [message: unknown, handle: unknown]
+  disconnect: []
+  error: [err: Error]
+}
+```
+
+<!-- bare-refgen:api end -->
 
 ## License
 
