@@ -1,9 +1,11 @@
 import EventEmitter, { EventMap } from 'bare-events'
 
 interface SubprocessParentChannelEvents extends EventMap {
+  /** Emitted with each message received over the IPC channel, and any transferred handle. */
   message: [message: unknown, handle: unknown]
-  /** Close the IPC channel. A `'disconnect'` event is emitted once the channel is fully closed. */
+  /** Emitted once the IPC channel has fully closed. */
   disconnect: []
+  /** Emitted when the IPC channel errors. */
   error: [err: Error]
 }
 
@@ -25,6 +27,7 @@ interface SubprocessParentChannel<
   send(message: unknown, handle?: unknown, cb?: (err: Error | null) => void): boolean
   send(message: unknown, cb: (err: Error | null) => void): boolean
 
+  /** Close the IPC channel. A `'disconnect'` event is emitted once the channel is fully closed. */
   disconnect(): void
 
   /** Reference the subprocess and its stdio pipes against the event loop. */

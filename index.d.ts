@@ -8,10 +8,13 @@ import errors from './lib/errors'
 export { constants, errors, type SubprocessChannel }
 
 export interface SubprocessEvents extends EventMap {
+  /** Emitted when the child exits, carrying its exit code or the signal that terminated it. */
   exit: [code: number | null, signalCode: string | null]
+  /** Emitted with each message received from the child, and any transferred handle. */
   message: [message: unknown, handle: unknown]
-  /** Close the IPC channel. A `'disconnect'` event is emitted once the channel is fully closed. */
+  /** Emitted once the IPC channel to the child has fully closed. */
   disconnect: []
+  /** Emitted when the subprocess or its IPC channel errors. */
   error: [err: Error]
 }
 
@@ -76,6 +79,7 @@ export interface Subprocess<M extends SubprocessEvents = SubprocessEvents> exten
   send(message: unknown, handle?: unknown, cb?: (err: Error | null) => void): boolean
   send(message: unknown, cb: (err: Error | null) => void): boolean
 
+  /** Close the IPC channel. A `'disconnect'` event is emitted once the channel is fully closed. */
   disconnect(): void
 }
 
