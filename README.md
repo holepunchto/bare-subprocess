@@ -20,7 +20,9 @@ subprocess.on('exit', () => console.log('done'))
 
 ## API
 
-See the [full API reference](https://docs.pears.com/reference/bare/modules/bare-subprocess).
+See the [`bare-subprocess` reference][reference].
+
+[reference]: https://docs.pears.com/reference/bare/modules/bare-subprocess
 
 ## License
 
