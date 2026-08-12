@@ -5,8 +5,10 @@ interface SubprocessChannel {
   /**
    * @param message - The value to send to the other side of the channel.
    * @param handle - A `bare-pipe` `Pipe` or `bare-tcp` `Socket` to transfer along with `message`.
-   * @param cb - Called with `(err)` once `message` has been written, or with an error if the channel is disconnected.
-   * @returns `false` if the channel is disconnected (`cb`, if given, is then invoked asynchronously with a `CHANNEL_DISCONNECTED` error); otherwise the underlying pipe write result.
+   * @param cb - Called with `(err)` once `message` has been written, or with an error if the
+   * channel is disconnected.
+   * @returns `false` if the channel is disconnected (`cb`, if given, is then invoked asynchronously
+   * with a `CHANNEL_DISCONNECTED` error); otherwise the underlying pipe write result.
    */
   send(message: unknown, handle?: unknown, cb?: (err: Error | null) => void): boolean
   send(message: unknown, cb: (err: Error | null) => void): boolean

@@ -15,9 +15,12 @@ interface SubprocessParentChannel<
 
   /**
    * @param message - The value to send to the parent process over the IPC channel.
-   * @param handle - A `bare-pipe` `Pipe` or `bare-tcp` `Socket` to transfer to the parent along with `message`.
-   * @param cb - Called with `(err)` once `message` has been written, or with an error if the channel is disconnected.
-   * @returns `false` if the channel is disconnected (`cb`, if given, is then invoked asynchronously with a `CHANNEL_DISCONNECTED` error); otherwise the underlying pipe write result.
+   * @param handle - A `bare-pipe` `Pipe` or `bare-tcp` `Socket` to transfer to the parent along
+   * with `message`.
+   * @param cb - Called with `(err)` once `message` has been written, or with an error if the
+   * channel is disconnected.
+   * @returns `false` if the channel is disconnected (`cb`, if given, is then invoked asynchronously
+   * with a `CHANNEL_DISCONNECTED` error); otherwise the underlying pipe write result.
    */
   send(message: unknown, handle?: unknown, cb?: (err: Error | null) => void): boolean
   send(message: unknown, cb: (err: Error | null) => void): boolean
@@ -35,7 +38,8 @@ declare class SubprocessParentChannel<
 > {
   /**
    * @throws {NO_IPC_CHANNEL} thrown if the `BARE_CHANNEL_FD` environment variable is not set.
-   * @throws {UNKNOWN_SERIALIZATION_MODE} thrown if `BARE_CHANNEL_SERIALIZATION_MODE` is set to something other than `'json'` or `'advanced'`.
+   * @throws {UNKNOWN_SERIALIZATION_MODE} thrown if `BARE_CHANNEL_SERIALIZATION_MODE` is set to
+   * something other than `'json'` or `'advanced'`.
    */
   constructor()
 }
