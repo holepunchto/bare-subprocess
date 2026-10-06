@@ -41,6 +41,18 @@ test('kill', (t) => {
     .kill()
 })
 
+test('not found', (t) => {
+  t.plan(3)
+
+  // Detached, so that a stray signal to the process group of the fixture cannot
+  // reach the test runner.
+  const subprocess = spawnSync(os.execPath(), ['test/fixtures/not-found.js'], { detached: true })
+
+  t.is(subprocess.signal, null)
+  t.is(subprocess.status, 0)
+  t.alike(subprocess.stdout, Buffer.from('ENOENT' + os.EOL))
+})
+
 test('sync', (t) => {
   t.plan(3)
 

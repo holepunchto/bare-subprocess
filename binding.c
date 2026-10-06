@@ -331,6 +331,12 @@ bare_subprocess_spawn(js_env_t *env, js_callback_info_t *info) {
   js_value_t *pid = NULL;
 
   if (err < 0) {
+    // The handle has no process to kill, which would otherwise signal the
+    // process group of this process with a pid of 0 on teardown.
+    subprocess->killed = true;
+
+    uv_close((uv_handle_t *) &subprocess->handle, bare_subprocess__on_close);
+
     err = js_throw_error(env, uv_err_name(err), uv_strerror(err));
     assert(err == 0);
   } else {
