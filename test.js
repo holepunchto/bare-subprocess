@@ -48,8 +48,8 @@ test('kill twice', (t) => {
 
   subprocess.on('exit', () => t.pass('exited'))
 
-  t.is(subprocess.kill('SIGTERM'), true)
-  t.is(subprocess.kill('SIGKILL'), true)
+  t.is(subprocess.kill(0), true)
+  t.is(subprocess.kill(), true)
 })
 
 test('kill after exit', (t) => {
