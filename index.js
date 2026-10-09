@@ -68,9 +68,11 @@ exports.Subprocess = class Subprocess extends EventEmitter {
       signum = constants[signum]
     }
 
-    binding.kill(this._handle, signum)
+    const sent = binding.kill(this._handle, signum)
 
-    this.killed = true
+    if (sent) this.killed = true
+
+    return sent
   }
 
   send(message, handle = null, cb) {

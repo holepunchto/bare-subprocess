@@ -63,9 +63,10 @@ export interface Subprocess<M extends SubprocessEvents = SubprocessEvents> exten
   /**
    * @param signum - Signal to send, as a signal number or name (for example `'SIGTERM'`); defaults
    * to `SIGTERM`.
+   * @returns `true` if the signal was sent, or `false` if the child has already exited.
    * @throws {UNKNOWN_SIGNAL} thrown if `signum` is a string that isn't a recognized signal name.
    */
-  kill(signum?: number): void
+  kill(signum?: number): boolean
 
   /**
    * @param message - The value to send to the child over the IPC channel.
