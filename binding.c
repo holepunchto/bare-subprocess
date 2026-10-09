@@ -12,7 +12,7 @@ typedef struct {
   js_ref_t *ctx;
   js_ref_t *on_exit;
 
-  bool killed;
+  bool exited;
   bool exiting;
 
   js_deferred_teardown_t *teardown;
@@ -52,7 +52,7 @@ bare_subprocess__on_exit(uv_process_t *handle, int64_t exit_status, int term_sig
 
   bare_subprocess_t *subprocess = (bare_subprocess_t *) handle;
 
-  subprocess->killed = true;
+  subprocess->exited = true;
 
   if (subprocess->exiting) goto close;
 
@@ -95,10 +95,10 @@ bare_subprocess__on_teardown(js_deferred_teardown_t *handle, void *data) {
 
   subprocess->exiting = true;
 
-  if (subprocess->killed) return;
+  if (subprocess->exited) return;
 
   err = uv_process_kill(&subprocess->handle, SIGTERM);
-  assert(err == 0);
+  assert(err == 0 || err == UV_ESRCH);
 }
 
 static void
@@ -145,7 +145,7 @@ bare_subprocess_init(js_env_t *env, js_callback_info_t *info) {
   assert(err == 0);
 
   subprocess->env = env;
-  subprocess->killed = false;
+  subprocess->exited = false;
   subprocess->exiting = false;
 
   err = js_create_reference(env, argv[0], 1, &subprocess->ctx);
@@ -333,7 +333,7 @@ bare_subprocess_spawn(js_env_t *env, js_callback_info_t *info) {
   if (err < 0) {
     // The handle has no process to kill, which would otherwise signal the
     // process group of this process with a pid of 0 on teardown.
-    subprocess->killed = true;
+    subprocess->exited = true;
 
     uv_close((uv_handle_t *) &subprocess->handle, bare_subprocess__on_close);
 
@@ -626,22 +626,32 @@ bare_subprocess_kill(js_env_t *env, js_callback_info_t *info) {
   err = js_get_arraybuffer_info(env, argv[0], (void **) &subprocess, NULL);
   assert(err == 0);
 
-  if (subprocess->killed) return NULL;
+  bool sent = false;
+
+  js_value_t *result;
+
+  if (subprocess->exited) goto done;
 
   uint32_t signum;
   err = js_get_value_uint32(env, argv[1], &signum);
   assert(err == 0);
 
-  subprocess->killed = true;
-
   err = uv_process_kill(&subprocess->handle, signum);
 
-  if (err < 0) {
+  if (err < 0 && err != UV_ESRCH) {
     err = js_throw_error(env, uv_err_name(err), uv_strerror(err));
     assert(err == 0);
+
+    return NULL;
   }
 
-  return NULL;
+  sent = err == 0;
+
+done:
+  err = js_get_boolean(env, sent, &result);
+  assert(err == 0);
+
+  return result;
 }
 
 static js_value_t *

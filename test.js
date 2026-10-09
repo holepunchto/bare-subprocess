@@ -26,19 +26,41 @@ test('basic', (t) => {
 })
 
 test('kill', (t) => {
-  t.plan(4)
+  t.plan(5)
 
   const subprocess = spawn(os.execPath(), ['test/fixtures/spin.js'])
 
-  subprocess
-    .on('exit', () => {
-      t.is(subprocess.exitCode, null)
-      t.is(subprocess.killed, true)
-      t.is(subprocess.signalCode, 'SIGTERM')
+  subprocess.on('exit', () => {
+    t.is(subprocess.exitCode, null)
+    t.is(subprocess.killed, true)
+    t.is(subprocess.signalCode, 'SIGTERM')
 
-      t.pass('exited')
-    })
-    .kill()
+    t.pass('exited')
+  })
+
+  t.is(subprocess.kill(), true)
+})
+
+test('kill twice', (t) => {
+  t.plan(3)
+
+  const subprocess = spawn(os.execPath(), ['test/fixtures/spin.js'])
+
+  subprocess.on('exit', () => t.pass('exited'))
+
+  t.is(subprocess.kill(0), true)
+  t.is(subprocess.kill(), true)
+})
+
+test('kill after exit', (t) => {
+  t.plan(2)
+
+  const subprocess = spawn(os.execPath(), ['test/fixtures/hello.js'])
+
+  subprocess.on('exit', () => {
+    t.is(subprocess.kill(), false)
+    t.is(subprocess.killed, false)
+  })
 })
 
 test('not found', (t) => {
