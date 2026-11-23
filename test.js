@@ -165,7 +165,9 @@ test('env', (t) => {
   subprocess.stdout.on('data', (data) => t.alike(data, Buffer.from('VALUE' + os.EOL)))
 })
 
-test('echo', (t) => {
+// Writes issued from a write callback stall on Windows non-overlapped pipes,
+// see https://github.com/libuv/libuv/pull/5329.
+test('echo', { skip: Bare.platform === 'win32' }, (t) => {
   t.plan(3)
 
   const subprocess = spawn(os.execPath(), ['test/fixtures/echo.js'])
