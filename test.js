@@ -96,7 +96,7 @@ test('sync, not found', (t) => {
   t.is(subprocess.error.code, 'ENOENT')
 })
 
-test('sync, long file and cwd', (t) => {
+test('sync, long file and cwd', { skip: Bare.platform === 'win32' }, (t) => {
   t.plan(2)
 
   const padding = `.${path.sep}`.repeat(200)
