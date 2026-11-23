@@ -2,6 +2,7 @@
 #include <bare.h>
 #include <js.h>
 #include <stdlib.h>
+#include <string.h>
 #include <utf.h>
 #include <uv.h>
 
@@ -27,7 +28,7 @@ typedef struct {
 typedef utf8_t bare_subprocess_string_buffer_t[256];
 
 static utf8_t *
-bare_subprocess__get_string(js_env_t *env, js_value_t *value, bare_subprocess_string_buffer_t buffer) {
+bare_subprocess__get_string(js_env_t *env, js_value_t *value, bare_subprocess_string_buffer_t buffer, bool *valid) {
   int err;
 
   size_t str_len;
@@ -46,6 +47,8 @@ bare_subprocess__get_string(js_env_t *env, js_value_t *value, bare_subprocess_st
 
   err = js_get_value_string_utf8(env, value, result, len, NULL);
   assert(err == 0);
+
+  if (strlen((char *) result) != str_len) *valid = false;
 
   return result;
 }
@@ -209,8 +212,10 @@ bare_subprocess_spawn(js_env_t *env, js_callback_info_t *info) {
   err = js_get_arraybuffer_info(env, argv[0], (void **) &subprocess, NULL);
   assert(err == 0);
 
+  bool valid = true;
+
   bare_subprocess_string_buffer_t file_buffer;
-  utf8_t *file = bare_subprocess__get_string(env, argv[1], file_buffer);
+  utf8_t *file = bare_subprocess__get_string(env, argv[1], file_buffer, &valid);
 
   uint32_t args_len;
   err = js_get_array_length(env, argv[2], &args_len);
@@ -235,11 +240,13 @@ bare_subprocess_spawn(js_env_t *env, js_callback_info_t *info) {
     err = js_get_value_string_utf8(env, value, arg, arg_len, NULL);
     assert(err == 0);
 
+    if (strlen((char *) arg) != arg_len - 1 /* NULL */) valid = false;
+
     args[i + 1] = arg;
   }
 
   bare_subprocess_string_buffer_t cwd_buffer;
-  utf8_t *cwd = bare_subprocess__get_string(env, argv[3], cwd_buffer);
+  utf8_t *cwd = bare_subprocess__get_string(env, argv[3], cwd_buffer, &valid);
 
   uint32_t pairs_len;
   err = js_get_array_length(env, argv[4], &pairs_len);
@@ -262,7 +269,34 @@ bare_subprocess_spawn(js_env_t *env, js_callback_info_t *info) {
     err = js_get_value_string_utf8(env, value, pair, pair_len, NULL);
     assert(err == 0);
 
+    if (strlen((char *) pair) != pair_len - 1 /* NULL */) valid = false;
+
     pairs[i] = pair;
+  }
+
+  if (!valid) {
+    subprocess->exited = true;
+
+    bare_subprocess__on_close((uv_handle_t *) &subprocess->handle);
+
+    bare_subprocess__free_string(file, file_buffer);
+    bare_subprocess__free_string(cwd, cwd_buffer);
+
+    for (uint32_t i = 0; i < args_len; i++) {
+      free(args[i + 1]);
+    }
+
+    for (uint32_t i = 0; i < pairs_len; i++) {
+      free(pairs[i]);
+    }
+
+    free(args);
+    free(pairs);
+
+    err = js_throw_type_error(env, NULL, "Arguments must not contain null bytes");
+    assert(err == 0);
+
+    return NULL;
   }
 
   uint32_t stdio_len;
@@ -285,7 +319,7 @@ bare_subprocess_spawn(js_env_t *env, js_callback_info_t *info) {
     err = js_get_value_uint32(env, property, &flags);
     assert(err == 0);
 
-    stdio[i] = (uv_stdio_container_t) {
+    stdio[i] = (uv_stdio_container_t){
       .flags = flags,
     };
 
@@ -409,8 +443,10 @@ bare_subprocess_spawn_sync(js_env_t *env, js_callback_info_t *info) {
   err = js_get_arraybuffer_info(env, argv[0], (void **) &subprocess, NULL);
   assert(err == 0);
 
+  bool valid = true;
+
   bare_subprocess_string_buffer_t file_buffer;
-  utf8_t *file = bare_subprocess__get_string(env, argv[1], file_buffer);
+  utf8_t *file = bare_subprocess__get_string(env, argv[1], file_buffer, &valid);
 
   uint32_t args_len;
   err = js_get_array_length(env, argv[2], &args_len);
@@ -435,11 +471,13 @@ bare_subprocess_spawn_sync(js_env_t *env, js_callback_info_t *info) {
     err = js_get_value_string_utf8(env, value, arg, arg_len, NULL);
     assert(err == 0);
 
+    if (strlen((char *) arg) != arg_len - 1 /* NULL */) valid = false;
+
     args[i + 1] = arg;
   }
 
   bare_subprocess_string_buffer_t cwd_buffer;
-  utf8_t *cwd = bare_subprocess__get_string(env, argv[3], cwd_buffer);
+  utf8_t *cwd = bare_subprocess__get_string(env, argv[3], cwd_buffer, &valid);
 
   uint32_t pairs_len;
   err = js_get_array_length(env, argv[4], &pairs_len);
@@ -462,7 +500,37 @@ bare_subprocess_spawn_sync(js_env_t *env, js_callback_info_t *info) {
     err = js_get_value_string_utf8(env, value, pair, pair_len, NULL);
     assert(err == 0);
 
+    if (strlen((char *) pair) != pair_len - 1 /* NULL */) valid = false;
+
     pairs[i] = pair;
+  }
+
+  if (!valid) {
+    subprocess->exited = true;
+
+    bare_subprocess__on_close((uv_handle_t *) &subprocess->handle);
+
+    bare_subprocess__free_string(file, file_buffer);
+    bare_subprocess__free_string(cwd, cwd_buffer);
+
+    for (uint32_t i = 0; i < args_len; i++) {
+      free(args[i + 1]);
+    }
+
+    for (uint32_t i = 0; i < pairs_len; i++) {
+      free(pairs[i]);
+    }
+
+    free(args);
+    free(pairs);
+
+    err = uv_loop_close(&loop);
+    assert(err == 0);
+
+    err = js_throw_type_error(env, NULL, "Arguments must not contain null bytes");
+    assert(err == 0);
+
+    return NULL;
   }
 
   uint32_t stdio_len;
@@ -485,7 +553,7 @@ bare_subprocess_spawn_sync(js_env_t *env, js_callback_info_t *info) {
     err = js_get_value_uint32(env, property, &flags);
     assert(err == 0);
 
-    stdio[i] = (uv_stdio_container_t) {
+    stdio[i] = (uv_stdio_container_t){
       .flags = flags,
     };
 

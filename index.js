@@ -162,6 +162,8 @@ exports.spawn = function spawn(file, args, opts) {
   file = toPath(file)
   cwd = toPath(cwd)
 
+  validateSpawnArguments(file, args, cwd, env, shell)
+
   if (shell) {
     const command = [file, ...args].join(' ')
 
@@ -326,6 +328,8 @@ exports.spawnSync = function spawn(file, args, opts) {
   file = toPath(file)
   cwd = toPath(cwd)
 
+  validateSpawnArguments(file, args, cwd, env, shell)
+
   if (shell) {
     const command = [file, ...args].join(' ')
 
@@ -447,6 +451,28 @@ function defaultCwd() {
 
 function defaultEnv() {
   return env
+}
+
+// The arguments are passed on as C strings, so a NUL would cut them short.
+function validateSpawnArguments(file, args, cwd, env, shell) {
+  validateNoNullBytes(file, 'file')
+
+  for (let i = 0; i < args.length; i++) validateNoNullBytes(String(args[i]), `args[${i}]`)
+
+  validateNoNullBytes(cwd, 'options.cwd')
+
+  for (const [key, value] of Object.entries(env)) {
+    validateNoNullBytes(key, `options.env['${key}']`)
+    validateNoNullBytes(String(value), `options.env['${key}']`)
+  }
+
+  if (typeof shell === 'string') validateNoNullBytes(shell, 'options.shell')
+}
+
+function validateNoNullBytes(value, name) {
+  if (value.includes('\0')) {
+    throw new TypeError(`The "${name}" argument must not contain null bytes`)
+  }
 }
 
 function toPath(filepath) {
