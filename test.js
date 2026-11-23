@@ -96,6 +96,32 @@ test('sync, not found', (t) => {
   t.is(subprocess.error.code, 'ENOENT')
 })
 
+test('sync, long file and cwd', { skip: Bare.platform === 'win32' }, (t) => {
+  t.plan(2)
+
+  const padding = `.${path.sep}`.repeat(200)
+  const file = path.dirname(os.execPath()) + path.sep + padding + path.basename(os.execPath())
+  const cwd = path.resolve('.') + path.sep + padding
+
+  const subprocess = spawnSync(file, ['test/fixtures/hello.js'], { cwd })
+
+  t.is(subprocess.status, 0)
+  t.alike(subprocess.stdout, Buffer.from('hello' + os.EOL))
+})
+
+test(
+  'sync, file and cwd longer than the platform allows',
+  { skip: Bare.platform === 'win32' },
+  (t) => {
+    t.plan(2)
+
+    const long = 'a'.repeat(5000)
+
+    t.is(spawnSync(long).error.code, 'ENAMETOOLONG')
+    t.is(spawnSync(os.execPath(), [], { cwd: long }).error.code, 'ENAMETOOLONG')
+  }
+)
+
 test('pipe', (t) => {
   t.plan(1)
 
@@ -139,7 +165,9 @@ test('env', (t) => {
   subprocess.stdout.on('data', (data) => t.alike(data, Buffer.from('VALUE' + os.EOL)))
 })
 
-test('echo', (t) => {
+// Writes issued from a write callback stall on Windows non-overlapped pipes,
+// see https://github.com/libuv/libuv/pull/5329.
+test('echo', { skip: Bare.platform === 'win32' }, (t) => {
   t.plan(3)
 
   const subprocess = spawn(os.execPath(), ['test/fixtures/echo.js'])
