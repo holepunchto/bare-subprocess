@@ -122,6 +122,24 @@ test(
   }
 )
 
+test('arguments with a NUL', (t) => {
+  const fixture = 'test/fixtures/hello.js'
+
+  const cases = [
+    [os.execPath() + '\0x', [fixture], {}],
+    [os.execPath(), [fixture + '\0.png'], {}],
+    [os.execPath(), [fixture], { cwd: '.\0/missing' }],
+    [os.execPath(), [fixture], { env: { 'A\0B': '1' } }],
+    [os.execPath(), [fixture], { env: { A: '1\0' } }],
+    [os.execPath(), [fixture], { shell: '/bin/sh\0x' }]
+  ]
+
+  for (const [file, args, opts] of cases) {
+    t.exception.all(() => spawn(file, args, opts), TypeError)
+    t.exception.all(() => spawnSync(file, args, opts), TypeError)
+  }
+})
+
 test('pipe', (t) => {
   t.plan(1)
 
